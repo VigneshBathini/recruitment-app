@@ -1,12 +1,10 @@
+
 import {
   createOrganization as createOrganizationRepository,
-} from "../repositories/organization.repository";
+  getAllOrganizations
+} from "../repositories/organization.repository.js";
 
-import type { CreateOrganizationInput } from "../schemas/organization.schema";
-
-export async function createOrganization(
-  data: CreateOrganizationInput
-) {
+export async function createOrganization(data) {
   const organizationData = {
     name: data.name.trim(),
     slug: data.slug.trim().toLowerCase(),
@@ -14,4 +12,9 @@ export async function createOrganization(
   };
 
   return createOrganizationRepository(organizationData);
+}
+
+
+export async function getOrganizations(){
+    return await getAllOrganizations();
 }

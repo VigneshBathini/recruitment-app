@@ -1,10 +1,16 @@
 
-import organizationRoutes from "./routes/organization.routes";
+import "dotenv/config";
+
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import pool from "./config/database.js";
 
-import pool from "./config/database";
+import organizationRoutes from "./routes/organization.routes.js";
+import departmentRoutes from "./routes/department.routes.js";
+import userRoutes from "./routes/user.routes.js";
+import roleRoutes from "./routes/role.routes.js";
+import authRoutes from "./routes/auth.routes.js";
 
 const app = express();
 
@@ -28,7 +34,6 @@ app.get("/api/health/db", async (_req, res) => {
       message: "Database connection successful",
       data: rows,
     });
-
   } catch (error) {
     console.error("Database connection failed:", error);
 
@@ -36,16 +41,17 @@ app.get("/api/health/db", async (_req, res) => {
       success: false,
       message: "Database connection failed",
     });
-    
   }
 });
 
-
 app.use("/api/organizations", organizationRoutes);
+app.use("/api/departments", departmentRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/roles", roleRoutes);
+app.use("/api/auth", authRoutes);
+
 
 const PORT = process.env.PORT || 5000;
-
-
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

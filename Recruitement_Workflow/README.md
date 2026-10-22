@@ -1,56 +1,89 @@
-# Welcome to your Expo app 👋
+Understood. You want our complete Recruitment Workflow Platform roadmap in a text-based workflow, so you can clearly see what we have completed, what we are developing now, and what comes next.
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+# Recruitment Workflow Platform — Complete Roadmap
 
-## Get started
+Right Talent. Right Role. Right Time.
 
-1. Install dependencies
+## 1. Overall development roadmap
 
-   ```bash
-   npm install
-   ```
+Phase 1 — Project Foundation
 
-2. Start the app
+Completed foundation
 
-   ```bash
-   npx expo start
-   ```
+Expo + React Native + TypeScript · Express backend · MySQL setup · Organization module · Departments module
 
-In the output, you'll find options to open the app in a
+Phase 2 — Organization & User Management
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+Current phase
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+Roles API · Create user · Users list · Edit user · Activate/deactivate user · Organization and department validation
 
-## Get a fresh project
+Phase 3 — Authentication & Permissions
 
-When you're ready, run:
+Login/logout · Password verification · Token management · Role-based access control (RBAC) · Organization data isolation · Role-based dashboards
 
-```bash
-npm run reset-project
-```
+Phase 4 — Hiring Requirements & Jobs
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Create hiring requirement → Create job description → Hiring manager approval → Publish job
 
-### Other setup steps
+Phase 5 — Candidate Applications
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Candidate application link → Candidate profile and resume → Applications list → Recruiter screening → Shortlisting
 
-## Learn more
+Phase 6 — Interviews & Hiring Decisions
 
-To learn more about developing your project with Expo, look at the following resources:
+Schedule interviews → Assign interviewers → Meeting links → Interview feedback → Hiring manager decision
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Phase 7 — Offers & Onboarding
 
-## Join the community
+Offer preparation → Offer acceptance/rejection → Onboarding checklist → Ready to join → Hired
 
-Join our community of developers creating universal apps.
+Phase 8 — Testing & Deployment
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Notifications · Audit logs · Responsive mobile/web testing · Security testing · Deployment and production checks
+
+## 2. Detailed business workflow
+
+This is how the application will work for an organization after all the core modules are implemented.
+
+\#chatgpt-mermaid-\_r_1ri\_{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";font-size:16px;fill:rgb(237, 237, 237);}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#chatgpt-mermaid-\_r_1ri\_ .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#chatgpt-mermaid-\_r_1ri\_ .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#chatgpt-mermaid-\_r_1ri\_ .error-icon{fill:rgb(48, 48, 48);}#chatgpt-mermaid-\_r_1ri\_ .error-text{fill:rgb(237, 237, 237);stroke:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1ri\_ .edge-thickness-normal{stroke-width:1px;}#chatgpt-mermaid-\_r_1ri\_ .edge-thickness-thick{stroke-width:3.5px;}#chatgpt-mermaid-\_r_1ri\_ .edge-pattern-solid{stroke-dasharray:0;}#chatgpt-mermaid-\_r_1ri\_ .edge-thickness-invisible{stroke-width:0;fill:none;}#chatgpt-mermaid-\_r_1ri\_ .edge-pattern-dashed{stroke-dasharray:3;}#chatgpt-mermaid-\_r_1ri\_ .edge-pattern-dotted{stroke-dasharray:2;}#chatgpt-mermaid-\_r_1ri\_ .marker{fill:rgb(175, 175, 175);stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_1ri\_ .marker.cross{stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_1ri\_ svg{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";font-size:16px;}#chatgpt-mermaid-\_r_1ri\_ p{margin:0;}#chatgpt-mermaid-\_r_1ri\_ .label{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1ri\_ .cluster-label text{fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1ri\_ .cluster-label span{color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1ri\_ .cluster-label span p{background-color:transparent;}#chatgpt-mermaid-\_r_1ri\_ .label text,#chatgpt-mermaid-\_r_1ri\_ span{fill:rgb(237, 237, 237);color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1ri\_ .node rect,#chatgpt-mermaid-\_r_1ri\_ .node circle,#chatgpt-mermaid-\_r_1ri\_ .node ellipse,#chatgpt-mermaid-\_r_1ri\_ .node polygon,#chatgpt-mermaid-\_r_1ri\_ .node path{fill:rgb(9, 23, 44);stroke:rgb(31, 78, 148);stroke-width:1px;}#chatgpt-mermaid-\_r_1ri\_ .rough-node .label text,#chatgpt-mermaid-\_r_1ri\_ .node .label text,#chatgpt-mermaid-\_r_1ri\_ .image-shape .label,#chatgpt-mermaid-\_r_1ri\_ .icon-shape .label{text-anchor:middle;}#chatgpt-mermaid-\_r_1ri\_ .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#chatgpt-mermaid-\_r_1ri\_ .rough-node .label,#chatgpt-mermaid-\_r_1ri\_ .node .label,#chatgpt-mermaid-\_r_1ri\_ .image-shape .label,#chatgpt-mermaid-\_r_1ri\_ .icon-shape .label{text-align:center;}#chatgpt-mermaid-\_r_1ri\_ .node.clickable{cursor:pointer;}#chatgpt-mermaid-\_r_1ri\_ .root .anchor path{fill:rgb(175, 175, 175)!important;stroke-width:0;stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_1ri\_ .arrowheadPath{fill:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_1ri\_ .edgePath .path{stroke:rgb(175, 175, 175);stroke-width:1px;}#chatgpt-mermaid-\_r_1ri\_ .flowchart-link{stroke:rgb(175, 175, 175);fill:none;}#chatgpt-mermaid-\_r_1ri\_ .edgeLabel{background-color:rgb(0, 0, 0);text-align:center;}#chatgpt-mermaid-\_r_1ri\_ .edgeLabel p{background-color:rgb(0, 0, 0);}#chatgpt-mermaid-\_r_1ri\_ .edgeLabel rect{opacity:0.5;background-color:rgb(0, 0, 0);fill:rgb(0, 0, 0);}#chatgpt-mermaid-\_r_1ri\_ .labelBkg{background-color:rgba(0, 0, 0, 0.5);}#chatgpt-mermaid-\_r_1ri\_ .cluster rect{fill:rgb(48, 48, 48);stroke:rgba(255, 255, 255, 0.15);stroke-width:1px;}#chatgpt-mermaid-\_r_1ri\_ .cluster text{fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1ri\_ .cluster span{color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1ri\_ div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";font-size:12px;background:rgb(48, 48, 48);border:1px solid rgba(255, 255, 255, 0.15);border-radius:2px;pointer-events:none;z-index:100;}#chatgpt-mermaid-\_r_1ri\_ .flowchartTitleText{text-anchor:middle;font-size:18px;fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1ri\_ rect.text{fill:none;stroke-width:0;}#chatgpt-mermaid-\_r_1ri\_ .icon-shape,#chatgpt-mermaid-\_r_1ri\_ .image-shape{background-color:rgb(0, 0, 0);text-align:center;}#chatgpt-mermaid-\_r_1ri\_ .icon-shape p,#chatgpt-mermaid-\_r_1ri\_ .image-shape p{background-color:rgb(0, 0, 0);padding:2px;}#chatgpt-mermaid-\_r_1ri\_ .icon-shape .label rect,#chatgpt-mermaid-\_r_1ri\_ .image-shape .label rect{opacity:0.5;background-color:rgb(0, 0, 0);fill:rgb(0, 0, 0);}#chatgpt-mermaid-\_r_1ri\_ .label-icon{display:inline-block;height:1em;overflow:visible;vertical-align:-0.125em;}#chatgpt-mermaid-\_r_1ri\_ .node .label-icon path{fill:currentColor;stroke:revert;stroke-width:revert;}#chatgpt-mermaid-\_r_1ri\_ .node .neo-node{stroke:rgb(31, 78, 148);}#chatgpt-mermaid-\_r_1ri\_ [data-look="neo"].node rect,#chatgpt-mermaid-\_r_1ri\_ [data-look="neo"].cluster rect,#chatgpt-mermaid-\_r_1ri\_ [data-look="neo"].node polygon{stroke:url(#chatgpt-mermaid-\_r_1ri\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_1ri\_ [data-look="neo"].swimlane.cluster rect{filter:none;}#chatgpt-mermaid-\_r_1ri\_ [data-look="neo"].node path{stroke:url(#chatgpt-mermaid-\_r_1ri\_-gradient);stroke-width:1px;}#chatgpt-mermaid-\_r_1ri\_ [data-look="neo"].node .outer-path{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_1ri\_ [data-look="neo"].node .neo-line path{stroke:rgb(31, 78, 148);filter:none;}#chatgpt-mermaid-\_r_1ri\_ [data-look="neo"].node circle{stroke:url(#chatgpt-mermaid-\_r_1ri\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_1ri\_ [data-look="neo"].node circle .state-start{fill:#000000;}#chatgpt-mermaid-\_r_1ri\_ [data-look="neo"].icon-shape .icon{fill:url(#chatgpt-mermaid-\_r_1ri\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_1ri\_ [data-look="neo"].icon-shape .icon-neo path{stroke:url(#chatgpt-mermaid-\_r_1ri\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_1ri\_ .node text{font-size:14px;font-weight:600;letter-spacing:normal;fill:rgb(153, 206, 255);}#chatgpt-mermaid-\_r_1ri\_ .edgeLabels text{font-size:13px;font-weight:600;letter-spacing:-0.08px;fill:rgb(153, 206, 255);}#chatgpt-mermaid-\_r_1ri\_ .node tspan[font-weight="normal"],#chatgpt-mermaid-\_r_1ri\_ .edgeLabels tspan[font-weight="normal"]{font-weight:600;}#chatgpt-mermaid-\_r_1ri\_ .edgeLabel .label rect{opacity:1;rx:13px;ry:13px;fill:rgb(0, 14, 26);stroke:rgb(26, 62, 95);stroke-width:1px;}#chatgpt-mermaid-\_r_1ri\_ .node rect,#chatgpt-mermaid-\_r_1ri\_ .node circle,#chatgpt-mermaid-\_r_1ri\_ .node ellipse,#chatgpt-mermaid-\_r_1ri\_ .node polygon,#chatgpt-mermaid-\_r_1ri\_ .node path{fill:rgb(0, 40, 77);stroke:rgba(255, 255, 255, 0.1);stroke-width:1px;}#chatgpt-mermaid-\_r_1ri\_ .node rect{rx:16px;ry:16px;}#chatgpt-mermaid-\_r_1ri\_ .node.mermaid-decision .label-container{fill:rgb(0, 14, 26);stroke:rgb(26, 62, 95);stroke-dasharray:2,2;}#chatgpt-mermaid-\_r_1ri\_ .edgePaths .flowchart-link{stroke:rgb(175, 175, 175);stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;}#chatgpt-mermaid-\_r_1ri\_ .marker{fill:rgb(175, 175, 175);stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_1ri\_ :root{--mermaid-font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";}Platform SetupCreate OrganizationCreate DepartmentsCreate Users and Assign RolesLogin and Permission ChecksRecruiter Creates RequirementHiring Manager ReviewsRequirement Approved?Create and Publish JobCandidate AppliesRecruiter Screens ApplicationSuitable Candidate?Reject or WithdrawShortlist CandidateSchedule InterviewInterviewer Submits FeedbackHiring DecisionPrepare and Send OfferOffer Accepted?Offer Declined / ClosedOnboardingReady to JoinHiredNoYesNoYesRejectSelectNoYes
+
+## 3. Role-wise responsibilities
+
+| Role               | Main responsibility                                                  |
+| ------------------ | -------------------------------------------------------------------- |
+| Organization Admin | Organization settings, departments, users and roles                  |
+| Recruiter / HR     | Requirements, jobs, candidates, screening and interview coordination |
+| Hiring Manager     | Requirement approval and final hiring decisions                      |
+| Interviewer        | Assigned interviews and candidate feedback                           |
+| Candidate          | Application submission, application status and offer response        |
+
+## 4. Technical development workflow
+
+This is the implementation sequence we should follow for each module.
+
+\#chatgpt-mermaid-\_r_1rr\_{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";font-size:16px;fill:rgb(237, 237, 237);}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#chatgpt-mermaid-\_r_1rr\_ .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#chatgpt-mermaid-\_r_1rr\_ .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#chatgpt-mermaid-\_r_1rr\_ .error-icon{fill:rgb(48, 48, 48);}#chatgpt-mermaid-\_r_1rr\_ .error-text{fill:rgb(237, 237, 237);stroke:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1rr\_ .edge-thickness-normal{stroke-width:1px;}#chatgpt-mermaid-\_r_1rr\_ .edge-thickness-thick{stroke-width:3.5px;}#chatgpt-mermaid-\_r_1rr\_ .edge-pattern-solid{stroke-dasharray:0;}#chatgpt-mermaid-\_r_1rr\_ .edge-thickness-invisible{stroke-width:0;fill:none;}#chatgpt-mermaid-\_r_1rr\_ .edge-pattern-dashed{stroke-dasharray:3;}#chatgpt-mermaid-\_r_1rr\_ .edge-pattern-dotted{stroke-dasharray:2;}#chatgpt-mermaid-\_r_1rr\_ .marker{fill:rgb(175, 175, 175);stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_1rr\_ .marker.cross{stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_1rr\_ svg{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";font-size:16px;}#chatgpt-mermaid-\_r_1rr\_ p{margin:0;}#chatgpt-mermaid-\_r_1rr\_ .label{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1rr\_ .cluster-label text{fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1rr\_ .cluster-label span{color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1rr\_ .cluster-label span p{background-color:transparent;}#chatgpt-mermaid-\_r_1rr\_ .label text,#chatgpt-mermaid-\_r_1rr\_ span{fill:rgb(237, 237, 237);color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1rr\_ .node rect,#chatgpt-mermaid-\_r_1rr\_ .node circle,#chatgpt-mermaid-\_r_1rr\_ .node ellipse,#chatgpt-mermaid-\_r_1rr\_ .node polygon,#chatgpt-mermaid-\_r_1rr\_ .node path{fill:rgb(9, 23, 44);stroke:rgb(31, 78, 148);stroke-width:1px;}#chatgpt-mermaid-\_r_1rr\_ .rough-node .label text,#chatgpt-mermaid-\_r_1rr\_ .node .label text,#chatgpt-mermaid-\_r_1rr\_ .image-shape .label,#chatgpt-mermaid-\_r_1rr\_ .icon-shape .label{text-anchor:middle;}#chatgpt-mermaid-\_r_1rr\_ .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#chatgpt-mermaid-\_r_1rr\_ .rough-node .label,#chatgpt-mermaid-\_r_1rr\_ .node .label,#chatgpt-mermaid-\_r_1rr\_ .image-shape .label,#chatgpt-mermaid-\_r_1rr\_ .icon-shape .label{text-align:center;}#chatgpt-mermaid-\_r_1rr\_ .node.clickable{cursor:pointer;}#chatgpt-mermaid-\_r_1rr\_ .root .anchor path{fill:rgb(175, 175, 175)!important;stroke-width:0;stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_1rr\_ .arrowheadPath{fill:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_1rr\_ .edgePath .path{stroke:rgb(175, 175, 175);stroke-width:1px;}#chatgpt-mermaid-\_r_1rr\_ .flowchart-link{stroke:rgb(175, 175, 175);fill:none;}#chatgpt-mermaid-\_r_1rr\_ .edgeLabel{background-color:rgb(0, 0, 0);text-align:center;}#chatgpt-mermaid-\_r_1rr\_ .edgeLabel p{background-color:rgb(0, 0, 0);}#chatgpt-mermaid-\_r_1rr\_ .edgeLabel rect{opacity:0.5;background-color:rgb(0, 0, 0);fill:rgb(0, 0, 0);}#chatgpt-mermaid-\_r_1rr\_ .labelBkg{background-color:rgba(0, 0, 0, 0.5);}#chatgpt-mermaid-\_r_1rr\_ .cluster rect{fill:rgb(48, 48, 48);stroke:rgba(255, 255, 255, 0.15);stroke-width:1px;}#chatgpt-mermaid-\_r_1rr\_ .cluster text{fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1rr\_ .cluster span{color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1rr\_ div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";font-size:12px;background:rgb(48, 48, 48);border:1px solid rgba(255, 255, 255, 0.15);border-radius:2px;pointer-events:none;z-index:100;}#chatgpt-mermaid-\_r_1rr\_ .flowchartTitleText{text-anchor:middle;font-size:18px;fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1rr\_ rect.text{fill:none;stroke-width:0;}#chatgpt-mermaid-\_r_1rr\_ .icon-shape,#chatgpt-mermaid-\_r_1rr\_ .image-shape{background-color:rgb(0, 0, 0);text-align:center;}#chatgpt-mermaid-\_r_1rr\_ .icon-shape p,#chatgpt-mermaid-\_r_1rr\_ .image-shape p{background-color:rgb(0, 0, 0);padding:2px;}#chatgpt-mermaid-\_r_1rr\_ .icon-shape .label rect,#chatgpt-mermaid-\_r_1rr\_ .image-shape .label rect{opacity:0.5;background-color:rgb(0, 0, 0);fill:rgb(0, 0, 0);}#chatgpt-mermaid-\_r_1rr\_ .label-icon{display:inline-block;height:1em;overflow:visible;vertical-align:-0.125em;}#chatgpt-mermaid-\_r_1rr\_ .node .label-icon path{fill:currentColor;stroke:revert;stroke-width:revert;}#chatgpt-mermaid-\_r_1rr\_ .node .neo-node{stroke:rgb(31, 78, 148);}#chatgpt-mermaid-\_r_1rr\_ [data-look="neo"].node rect,#chatgpt-mermaid-\_r_1rr\_ [data-look="neo"].cluster rect,#chatgpt-mermaid-\_r_1rr\_ [data-look="neo"].node polygon{stroke:url(#chatgpt-mermaid-\_r_1rr\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_1rr\_ [data-look="neo"].swimlane.cluster rect{filter:none;}#chatgpt-mermaid-\_r_1rr\_ [data-look="neo"].node path{stroke:url(#chatgpt-mermaid-\_r_1rr\_-gradient);stroke-width:1px;}#chatgpt-mermaid-\_r_1rr\_ [data-look="neo"].node .outer-path{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_1rr\_ [data-look="neo"].node .neo-line path{stroke:rgb(31, 78, 148);filter:none;}#chatgpt-mermaid-\_r_1rr\_ [data-look="neo"].node circle{stroke:url(#chatgpt-mermaid-\_r_1rr\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_1rr\_ [data-look="neo"].node circle .state-start{fill:#000000;}#chatgpt-mermaid-\_r_1rr\_ [data-look="neo"].icon-shape .icon{fill:url(#chatgpt-mermaid-\_r_1rr\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_1rr\_ [data-look="neo"].icon-shape .icon-neo path{stroke:url(#chatgpt-mermaid-\_r_1rr\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_1rr\_ .node text{font-size:14px;font-weight:600;letter-spacing:normal;fill:rgb(153, 206, 255);}#chatgpt-mermaid-\_r_1rr\_ .edgeLabels text{font-size:13px;font-weight:600;letter-spacing:-0.08px;fill:rgb(153, 206, 255);}#chatgpt-mermaid-\_r_1rr\_ .node tspan[font-weight="normal"],#chatgpt-mermaid-\_r_1rr\_ .edgeLabels tspan[font-weight="normal"]{font-weight:600;}#chatgpt-mermaid-\_r_1rr\_ .edgeLabel .label rect{opacity:1;rx:13px;ry:13px;fill:rgb(0, 14, 26);stroke:rgb(26, 62, 95);stroke-width:1px;}#chatgpt-mermaid-\_r_1rr\_ .node rect,#chatgpt-mermaid-\_r_1rr\_ .node circle,#chatgpt-mermaid-\_r_1rr\_ .node ellipse,#chatgpt-mermaid-\_r_1rr\_ .node polygon,#chatgpt-mermaid-\_r_1rr\_ .node path{fill:rgb(0, 40, 77);stroke:rgba(255, 255, 255, 0.1);stroke-width:1px;}#chatgpt-mermaid-\_r_1rr\_ .node rect{rx:16px;ry:16px;}#chatgpt-mermaid-\_r_1rr\_ .node.mermaid-decision .label-container{fill:rgb(0, 14, 26);stroke:rgb(26, 62, 95);stroke-dasharray:2,2;}#chatgpt-mermaid-\_r_1rr\_ .edgePaths .flowchart-link{stroke:rgb(175, 175, 175);stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;}#chatgpt-mermaid-\_r_1rr\_ .marker{fill:rgb(175, 175, 175);stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_1rr\_ :root{--mermaid-font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";}Database TablesRepository: SQL QueriesService: Business RulesZod Schema: Input ValidationController: HTTP RequestsRoutes: API EndpointsTest APIFrontend Screen and FormConnect API to UITest Mobile and Web
+
+Our stack remains:
+
+- Frontend: React Native, Expo, Expo Router, TypeScript, Expo Web
+- Backend: Node.js, Express
+- Database: MySQL
+- Validation: Zod
+- Later additions: Authentication, RBAC, notifications, testing and deployment
+
+## 5. What should we develop next?
+
+Follow this order rather than jumping between modules.
+
+1. Finish the Users module — edit user, activate/deactivate, validation and error handling.
+2. Implement login and secure authentication.
+3. Implement role permissions and organization-level data isolation.
+4. Build role-based dashboards and navigation.
+5. Start the Requirements module, followed by Jobs and approvals.
+6. Build candidate applications, screening, interviews and feedback.
+7. Complete offers, onboarding, testing and deployment.
+
+Important: We should finish and test each phase before moving forward. Authentication and tenant isolation are especially important before this internal development API is used by real organizations.
+
+Our immediate next task is to finish Phase 2: Organization & User Management, starting with the edit-user backend that we were discussing.

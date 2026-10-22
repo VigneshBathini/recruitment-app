@@ -1,11 +1,11 @@
-import type { Request, Response } from "express";
-import { createOrganizationSchema } from "../schemas/organization.schema";
-import { createOrganization } from "../services/organization.service";
 
-export async function createOrganizationController(
-  req: Request,
-  res: Response
-) {
+import { createOrganizationSchema } from "../schemas/organization.schema.js";
+import {
+  createOrganization,
+  getOrganizations,
+} from "../services/organization.service.js";
+
+export async function createOrganizationController(req, res) {
   const validation = createOrganizationSchema.safeParse(req.body);
 
   if (!validation.success) {
@@ -31,5 +31,18 @@ export async function createOrganizationController(
       success: false,
       message: "Failed to create organization",
     });
+  }
+}
+
+export async function getOrganizationsController(req, res, next) {
+  try {
+    const organizations = await getOrganizations();
+
+    return res.status(200).json({
+      success: true,
+      data: organizations,
+    });
+  } catch (error) {
+    next(error);
   }
 }

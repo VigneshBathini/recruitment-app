@@ -1,10 +1,7 @@
-import axios from 'axios';
 
-import type { CreateOrganizationInput } from '@/schemas/organization';
+import api from "@/services/api";
 
-const API_BASE_URL = (
-  process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:5000/api'
-).replace(/\/+$/, '');
+import type { CreateOrganizationInput } from "@/schemas/organization";
 
 export type Organization = {
   id: number;
@@ -21,12 +18,25 @@ type CreateOrganizationResponse = {
   data: Organization;
 };
 
+type GetOrganizationsResponse = {
+  success: true;
+  data: Organization[];
+};
+
 export async function createOrganization(
   input: CreateOrganizationInput,
 ): Promise<Organization> {
-  const response = await axios.post<CreateOrganizationResponse>(
-    `${API_BASE_URL}/organizations`,
+  const response = await api.post<CreateOrganizationResponse>(
+    "/organizations",
     input,
+  );
+
+  return response.data.data;
+}
+
+export async function getOrganizations(): Promise<Organization[]> {
+  const response = await api.get<GetOrganizationsResponse>(
+    "/organizations",
   );
 
   return response.data.data;

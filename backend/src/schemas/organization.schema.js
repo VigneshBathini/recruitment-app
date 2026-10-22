@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 
 export const createOrganizationSchema = z.object({
@@ -24,7 +25,3 @@ export const createOrganizationSchema = z.object({
     .max(255)
     .optional(),
 });
-
-export type CreateOrganizationInput = z.infer<
-  typeof createOrganizationSchema
->;
