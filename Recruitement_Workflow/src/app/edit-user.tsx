@@ -495,10 +495,12 @@ export default function EditUserScreen() {
       <CustomDropdown
         label="Role *"
         placeholder="Select a role"
-        options={roles.map(role => ({
-          label: role.name,
-          value: role.id,
-        }))}
+       options={roles
+  .filter(role => role.name !== 'Organization Admin')
+  .map(role => ({
+    label: role.name,
+    value: role.id,
+  }))}
         value={roleId}
         onChange={setRoleId}
         colors={colors}

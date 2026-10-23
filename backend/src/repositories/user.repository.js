@@ -123,7 +123,7 @@ export async function departmentBelongsToOrganization(
 
 
 export async function updateUser(id, organizationId, data) {
-  const [result] = await pool.execute(
+  await pool.execute(
     `UPDATE users
      SET first_name = ?,
          last_name = ?,
@@ -143,14 +143,22 @@ export async function updateUser(id, organizationId, data) {
     ]
   );
 
-  const updateResult = result;
+  const [rows] = await pool.execute(
+    `SELECT id
+     FROM users
+     WHERE id = ? AND organization_id = ?
+     LIMIT 1`,
+    [id, organizationId]
+  );
 
-  if (updateResult.affectedRows === 0) {
+  if (rows.length === 0) {
     return null;
   }
 
   return getUserById(id);
 }
+
+
 
 
 
@@ -162,7 +170,6 @@ export async function setUserStatus(id, organizationId, isActive) {
     [isActive ? 1 : 0, id, organizationId]
   );
 
-  // Fetch the user within the same organization.
   const [rows] = await pool.execute(
     `SELECT
        u.id,
@@ -178,7 +185,8 @@ export async function setUserStatus(id, organizationId, isActive) {
      FROM users u
      INNER JOIN roles r ON r.id = u.role_id
      LEFT JOIN departments d ON d.id = u.department_id
-     WHERE u.id = ? AND u.organization_id = ?`,
+     WHERE u.id = ? AND u.organization_id = ?
+     LIMIT 1`,
     [id, organizationId]
   );
 

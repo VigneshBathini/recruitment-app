@@ -74,11 +74,11 @@ export async function updateUserService(id, organizationId, data) {
   }
 
   // 2. Verify that the selected role exists.
-  const role = await getRoleById(data.role_id);
+const role = await getRoleById(data.role_id);
 validateAssignableRole(role);
 
   // 3. Verify that the department belongs to this organization.
-  if (data.department_id !== null) {
+  if (data.department_id != null) {
     const departmentIsValid = await departmentBelongsToOrganization(
       data.department_id,
       organizationId
