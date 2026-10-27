@@ -21,6 +21,18 @@ export async function createDepartmentController(req, res, next) {
       });
     }
 
+    // Ensure the department belongs to the logged-in user's organization.
+    if (
+      Number(validation.data.organization_id) !==
+      req.user.organization_id
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You cannot manage another organization's departments",
+      });
+    }
+
     const department = await departmentService.createDepartment(
       validation.data,
     );
@@ -45,7 +57,7 @@ export async function createDepartmentController(req, res, next) {
       });
     }
 
-    next(error);
+    return next(error);
   }
 }
 
@@ -60,6 +72,15 @@ export async function getDepartmentsController(req, res, next) {
       });
     }
 
+    // Ensure the user can only view their own organization's departments.
+    if (organizationId !== req.user.organization_id) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You cannot access another organization's departments",
+      });
+    }
+
     const departments =
       await departmentService.getDepartmentsByOrganization(
         organizationId,
@@ -70,7 +91,7 @@ export async function getDepartmentsController(req, res, next) {
       data: departments,
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 }
 
@@ -98,9 +119,11 @@ export async function updateDepartmentController(req, res, next) {
       });
     }
 
+    // The service must verify ownership before updating the department.
     const department = await departmentService.updateDepartment(
       id,
       validation.data,
+      req.user.organization_id,
     );
 
     if (!department) {
@@ -115,7 +138,7 @@ export async function updateDepartmentController(req, res, next) {
       message: "Department updated successfully",
       data: department,
     });
-  }  catch (error) {
+  } catch (error) {
     console.error("Update department error:", error);
 
     if (error.code === "ER_NO_REFERENCED_ROW_2") {
@@ -132,6 +155,6 @@ export async function updateDepartmentController(req, res, next) {
       });
     }
 
-    next(error);
+    return next(error);
   }
 }

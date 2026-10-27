@@ -45,6 +45,12 @@ export default function HomeScreen() {
       icon: '♙',
       route: '/users',
     },
+    {
+  title: 'Role & Permissions',
+  description: 'Manage permissions assigned to each role.',
+  icon: '🔐',
+  route: '/role-permissions',
+},
   ] as const;
 
   async function handleLogout() {

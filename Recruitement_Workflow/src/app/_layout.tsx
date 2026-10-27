@@ -70,6 +70,10 @@ export default function RootLayout() {
         <Stack.Screen name="users" options={{ title: 'Users' }} />
         <Stack.Screen name="edit-user" options={{ title: 'Edit User' }} />
         <Stack.Screen name="explore" options={{ headerShown: false }} />
+        <Stack.Screen
+  name="role-permissions"
+  options={{ title: 'Role & Permissions' }}
+/>
       </Stack>
     </ThemeProvider>
   );

@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from "react";
+import api from "@/services/api";
 import {
   ActivityIndicator,
   Alert,
@@ -193,25 +194,25 @@ export default function CreateUserScreen() {
         setLoadError("");
 
         const [rolesResponse, departmentsResponse] = await Promise.all([
-          fetch(`${API_URL}/roles`),
-          fetch(`${API_URL}/departments/${ORGANIZATION_ID}`),
-        ]);
+  api.get<{ success: boolean; data: Role[] }>("/roles"),
+  fetch(`${API_URL}/departments/${ORGANIZATION_ID}`),
+]);
 
-        if (!rolesResponse.ok || !departmentsResponse.ok) {
-          throw new Error("Unable to load roles or departments.");
-        }
+if (!departmentsResponse.ok) {
+  throw new Error("Unable to load departments.");
+}
 
-        const rolesResult = await rolesResponse.json();
-        const departmentsResult = await departmentsResponse.json();
+const rolesResult = rolesResponse.data;
+const departmentsResult = await departmentsResponse.json();
 
-        if (!rolesResult.success || !departmentsResult.success) {
-          throw new Error("The server returned an error loading form data.");
-        }
+if (!rolesResult.success || !departmentsResult.success) {
+  throw new Error("Unable to load roles or departments.");
+}
 
-        if (!cancelled) {
-          setRoles(rolesResult.data);
-          setDepartments(departmentsResult.data);
-        }
+if (!cancelled) {
+  setRoles(rolesResult.data);
+  setDepartments(departmentsResult.data);
+}
       } catch (error) {
         if (!cancelled) {
           setLoadError(

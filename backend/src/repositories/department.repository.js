@@ -28,9 +28,7 @@ export async function getDepartmentById(id) {
   return rows[0] ?? null;
 }
 
-export async function getDepartmentsByOrganization(
-  organizationId,
-) {
+export async function getDepartmentsByOrganization(organizationId) {
   const [rows] = await pool.execute(
     `SELECT id, organization_id, name, description
      FROM departments
@@ -42,15 +40,16 @@ export async function getDepartmentsByOrganization(
   return rows;
 }
 
-export async function updateDepartment(id, data) {
+export async function updateDepartment(id, data, organizationId) {
   const [result] = await pool.execute(
     `UPDATE departments
      SET name = ?, description = ?
-     WHERE id = ?`,
+     WHERE id = ? AND organization_id = ?`,
     [
       data.name,
       data.description ?? null,
       id,
+      organizationId,
     ],
   );
 
