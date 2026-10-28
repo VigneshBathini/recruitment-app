@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   View,
+  useWindowDimensions,
 } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
@@ -35,6 +36,8 @@ type ApiResponse<T> = {
 
 export default function RolePermissionsScreen() {
   const theme = useTheme();
+  const { width } = useWindowDimensions();
+  const isWide = width >= 720;
 
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
@@ -147,7 +150,7 @@ export default function RolePermissionsScreen() {
   if (loading && roles.length === 0) {
     return (
       <ThemedView style={styles.centered}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={theme.primary} />
         <ThemedText>Loading roles and permissions...</ThemedText>
       </ThemedView>
     );
@@ -168,7 +171,7 @@ export default function RolePermissionsScreen() {
             <ThemedText>{loadError}</ThemedText>
             <Pressable
               onPress={() => void loadInitialData()}
-              style={styles.secondaryButton}
+              style={[styles.secondaryButton, { borderColor: theme.border }]}
             >
               <ThemedText>Retry</ThemedText>
             </Pressable>
@@ -190,11 +193,12 @@ export default function RolePermissionsScreen() {
                       styles.roleCard,
                       {
                         borderColor: isSelected
-                          ? theme.text
-                          : theme.textSecondary,
+                          ? theme.primary
+                          : theme.border,
                         backgroundColor: isSelected
-                          ? theme.backgroundSelected
+                          ? theme.primaryMuted
                           : theme.backgroundElement,
+                        width: isWide ? '47%' : '100%',
                       },
                     ]}
                   >
@@ -227,7 +231,7 @@ export default function RolePermissionsScreen() {
             </View>
 
             {loading ? (
-              <ActivityIndicator size="small" />
+              <ActivityIndicator size="small" color={theme.primary} />
             ) : permissions.length === 0 ? (
               <ThemedText>No permissions are configured.</ThemedText>
             ) : (
@@ -245,7 +249,7 @@ export default function RolePermissionsScreen() {
                       styles.permissionRow,
                       {
                         backgroundColor: theme.backgroundElement,
-                        borderColor: theme.textSecondary,
+                        borderColor: theme.border,
                         opacity: saving ? 0.6 : 1,
                       },
                     ]}
@@ -255,16 +259,20 @@ export default function RolePermissionsScreen() {
                         styles.checkbox,
                         {
                           borderColor: checked
-                            ? theme.text
-                            : theme.textSecondary,
+                            ? theme.primary
+                            : theme.border,
                           backgroundColor: checked
-                            ? theme.text
+                              ? theme.primary
                             : "transparent",
                         },
                       ]}
                     >
                       {checked && (
-                        <ThemedText style={styles.checkmark}>✓</ThemedText>
+                        <ThemedText
+                          style={[styles.checkmark, { color: theme.primaryText }]}
+                        >
+                          ✓
+                        </ThemedText>
                       )}
                     </View>
 
@@ -295,15 +303,17 @@ export default function RolePermissionsScreen() {
               style={[
                 styles.saveButton,
                 {
-                  backgroundColor: theme.text,
+                  backgroundColor: theme.primary,
                   opacity: saving || loading ? 0.6 : 1,
                 },
               ]}
             >
               {saving ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={theme.primaryText} />
               ) : (
-                <ThemedText style={styles.saveButtonText}>
+                <ThemedText
+                  style={[styles.saveButtonText, { color: theme.primaryText }]}
+                >
                   Save Permissions
                 </ThemedText>
               )}
@@ -323,7 +333,7 @@ const styles = StyleSheet.create({
     padding: Spacing.four,
     gap: Spacing.three,
     width: "100%",
-    maxWidth: 900,
+    maxWidth: 960,
     alignSelf: "center",
   },
   centered: {
@@ -346,11 +356,14 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   roleList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     gap: Spacing.two,
   },
   roleCard: {
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: Spacing.three,
     gap: Spacing.one,
   },
@@ -372,7 +385,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 14,
     padding: Spacing.three,
     gap: Spacing.three,
   },
@@ -385,7 +398,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   checkmark: {
-    color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "700",
   },
@@ -401,18 +413,16 @@ const styles = StyleSheet.create({
     minHeight: 48,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 10,
+    borderRadius: 12,
     padding: Spacing.three,
     marginTop: Spacing.two,
   },
   saveButtonText: {
-    color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "700",
   },
   secondaryButton: {
     borderWidth: 1,
-    borderColor: "#888888",
     padding: Spacing.three,
     borderRadius: 8,
     alignSelf: "flex-start",
@@ -422,4 +432,3 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
   },
 });
-

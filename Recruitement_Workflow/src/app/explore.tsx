@@ -1,180 +1,163 @@
-import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
-import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { ExternalLink } from '@/components/external-link';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-export default function TabTwoScreen() {
-  const safeAreaInsets = useSafeAreaInsets();
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
-  };
+const stages = [
+  {
+    number: '01',
+    title: 'Define the hiring need',
+    description: 'Capture the role, team, and headcount requirements.',
+  },
+  {
+    number: '02',
+    title: 'Prepare the job description',
+    description: 'Align responsibilities and qualifications with the hiring team.',
+  },
+  {
+    number: '03',
+    title: 'Review and approve',
+    description: 'Route the opening to the right stakeholders for approval.',
+  },
+  {
+    number: '04',
+    title: 'Publish the opportunity',
+    description: 'Make the approved role available to prospective candidates.',
+  },
+  {
+    number: '05',
+    title: 'Review applications',
+    description: 'Screen candidates and identify the strongest matches.',
+  },
+  {
+    number: '06',
+    title: 'Interview and decide',
+    description: 'Coordinate interviews, gather feedback, and make a decision.',
+  },
+  {
+    number: '07',
+    title: 'Offer and onboard',
+    description: 'Prepare the offer and guide the selected candidate through onboarding.',
+  },
+];
+
+export default function WorkflowOverviewScreen() {
   const theme = useTheme();
 
-  const contentPlatformStyle = Platform.select({
-    android: {
-      paddingTop: insets.top,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-      paddingBottom: insets.bottom,
-    },
-    web: {
-      paddingTop: Spacing.six,
-      paddingBottom: Spacing.four,
-    },
-  });
-
   return (
-    <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
-      contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}>
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="subtitle">Explore</ThemedText>
-          <ThemedText style={styles.centerText} themeColor="textSecondary">
-            This starter app includes example{'\n'}code to help you get started.
+    <ThemedView style={styles.screen}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.heading}>
+          <ThemedText style={[styles.eyebrow, { color: theme.primary }]}>
+            RECRUITMENT LIFECYCLE
           </ThemedText>
+          <ThemedText type="title">A clearer path to great hires</ThemedText>
+          <ThemedText style={{ color: theme.textSecondary }}>
+            See how each stage connects, from the first hiring request to a
+            confident onboarding experience.
+          </ThemedText>
+        </View>
 
-          <ExternalLink href="https://docs.expo.dev" asChild>
-            <Pressable style={({ pressed }) => pressed && styles.pressed}>
-              <ThemedView type="backgroundElement" style={styles.linkButton}>
-                <ThemedText type="link">Expo documentation</ThemedText>
-                <SymbolView
-                  tintColor={theme.text}
-                  name={{ ios: 'arrow.up.right.square', android: 'link', web: 'link' }}
-                  size={12}
-                />
-              </ThemedView>
-            </Pressable>
-          </ExternalLink>
-        </ThemedView>
-
-        <ThemedView style={styles.sectionsWrapper}>
-          <Collapsible title="File-based routing">
-            <ThemedText type="small">
-              This app has two screens: <ThemedText type="code">src/app/index.tsx</ThemedText> and{' '}
-              <ThemedText type="code">src/app/explore.tsx</ThemedText>
-            </ThemedText>
-            <ThemedText type="small">
-              The layout file in <ThemedText type="code">src/app/_layout.tsx</ThemedText> sets up
-              the tab navigator.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/router/introduction">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Android, iOS, and web support">
-            <ThemedView type="backgroundElement" style={styles.collapsibleContent}>
-              <ThemedText type="small">
-                You can open this project on Android, iOS, and the web. To open the web version,
-                press <ThemedText type="smallBold">w</ThemedText> in the terminal running this
-                project.
-              </ThemedText>
-              <Image
-                source={require('@/assets/images/tutorial-web.png')}
-                style={styles.imageTutorial}
-              />
-            </ThemedView>
-          </Collapsible>
-
-          <Collapsible title="Images">
-            <ThemedText type="small">
-              For static images, you can use the <ThemedText type="code">@2x</ThemedText> and{' '}
-              <ThemedText type="code">@3x</ThemedText> suffixes to provide files for different
-              screen densities.
-            </ThemedText>
-            <Image source={require('@/assets/images/react-logo.png')} style={styles.imageReact} />
-            <ExternalLink href="https://reactnative.dev/docs/images">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Light and dark mode components">
-            <ThemedText type="small">
-              This template has light and dark mode support. The{' '}
-              <ThemedText type="code">useColorScheme()</ThemedText> hook lets you inspect what the
-              user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Animations">
-            <ThemedText type="small">
-              This template includes an example of an animated component. The{' '}
-              <ThemedText type="code">src/components/ui/collapsible.tsx</ThemedText> component uses
-              the powerful <ThemedText type="code">react-native-reanimated</ThemedText> library to
-              animate opening this hint.
-            </ThemedText>
-          </Collapsible>
-        </ThemedView>
-        {Platform.OS === 'web' && <WebBadge />}
-      </ThemedView>
-    </ScrollView>
+        <View style={styles.stageList}>
+          {stages.map((stage, index) => (
+            <View
+              key={stage.number}
+              style={[
+                styles.stageCard,
+                {
+                  backgroundColor: theme.backgroundElement,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.stageNumber,
+                  { backgroundColor: theme.primaryMuted },
+                ]}
+              >
+                <ThemedText style={[styles.stageNumberText, { color: theme.primary }]}>
+                  {stage.number}
+                </ThemedText>
+              </View>
+              <View style={styles.stageCopy}>
+                <ThemedText style={styles.stageTitle}>{stage.title}</ThemedText>
+                <ThemedText style={{ color: theme.textSecondary }}>
+                  {stage.description}
+                </ThemedText>
+              </View>
+              {index < stages.length - 1 && (
+                <ThemedText style={[styles.stageArrow, { color: theme.textSecondary }]}>
+                  →
+                </ThemedText>
+              )}
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
+  screen: {
     flex: 1,
   },
-  contentContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  container: {
-    maxWidth: MaxContentWidth,
-    flexGrow: 1,
-  },
-  titleContainer: {
-    gap: Spacing.three,
-    alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.six,
-  },
-  centerText: {
-    textAlign: 'center',
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  linkButton: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.five,
-    justifyContent: 'center',
-    gap: Spacing.one,
-    alignItems: 'center',
-  },
-  sectionsWrapper: {
-    gap: Spacing.five,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
-  },
-  collapsibleContent: {
-    alignItems: 'center',
-  },
-  imageTutorial: {
+  content: {
     width: '100%',
-    aspectRatio: 296 / 171,
-    borderRadius: Spacing.three,
-    marginTop: Spacing.two,
-  },
-  imageReact: {
-    width: 100,
-    height: 100,
+    maxWidth: 960,
     alignSelf: 'center',
+    padding: Spacing.three,
+    gap: Spacing.four,
+  },
+  heading: {
+    gap: Spacing.two,
+    paddingVertical: Spacing.two,
+  },
+  eyebrow: {
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '700',
+    letterSpacing: 1.1,
+  },
+  stageList: {
+    gap: Spacing.two,
+  },
+  stageCard: {
+    minHeight: 88,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: Spacing.three,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
+  stageNumber: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stageNumberText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  stageCopy: {
+    flex: 1,
+    gap: Spacing.one,
+  },
+  stageTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  stageArrow: {
+    fontSize: 18,
+    fontWeight: '600',
   },
 });

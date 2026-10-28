@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { router } from 'expo-router';
 import axios from 'axios';
@@ -18,6 +19,7 @@ import {
   updateUserStatus,
   type User,
 } from '@/services/user.service';
+import { useTheme } from '@/hooks/use-theme';
 
 const ORGANIZATION_ID = 1;
 
@@ -37,6 +39,8 @@ function getErrorMessage(
 }
 
 export default function UsersScreen() {
+  const theme = useTheme();
+  const { width } = useWindowDimensions();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -141,10 +145,10 @@ export default function UsersScreen() {
   // Initial loading screen.
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#2563EB" />
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
 
-        <Text style={styles.helperText}>
+        <Text style={[styles.helperText, { color: theme.textSecondary }]}>
           Loading users...
         </Text>
       </View>
@@ -152,11 +156,17 @@ export default function UsersScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+    <View
+      style={[
+        styles.container,
+        { paddingHorizontal: width < 400 ? 16 : 24 },
+      ]}
+    >
       {/* Page heading */}
-      <Text style={styles.title}>Users</Text>
+      <Text style={[styles.title, { color: theme.text }]}>Users</Text>
 
-      <Text style={styles.subtitle}>
+      <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
         Manage organization members, roles, and departments.
       </Text>
 
@@ -166,18 +176,19 @@ export default function UsersScreen() {
         onPress={() => router.push('/create-user' as any)}
         style={({ pressed }) => [
           styles.createButton,
+          { backgroundColor: theme.primary },
           pressed && styles.buttonPressed,
         ]}
       >
-        <Text style={styles.createButtonText}>
+        <Text style={[styles.createButtonText, { color: theme.primaryText }]}>
           + Create User
         </Text>
       </Pressable>
 
       {/* Error message */}
       {!!error && (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{error}</Text>
+        <View style={[styles.errorBox, { backgroundColor: theme.dangerBackground }]}>
+          <Text style={{ color: theme.danger }}>{error}</Text>
 
           <Pressable
             onPress={() => {
@@ -185,7 +196,7 @@ export default function UsersScreen() {
               void fetchUsers();
             }}
           >
-            <Text style={styles.retry}>Try again</Text>
+            <Text style={[styles.retry, { color: theme.primary }]}>Try again</Text>
           </Pressable>
         </View>
       )}
@@ -193,6 +204,7 @@ export default function UsersScreen() {
       {/* Users list */}
       {!error && (
         <FlatList
+          style={styles.list}
           data={users}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={
@@ -205,7 +217,7 @@ export default function UsersScreen() {
             />
           }
           ListEmptyComponent={
-            <Text style={styles.emptyText}>
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
               No users found for this organization.
             </Text>
           }
@@ -214,30 +226,30 @@ export default function UsersScreen() {
             const isUpdating = updatingUserId === item.id;
 
             return (
-              <View style={styles.userCard}>
+              <View style={[styles.userCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
                 {/* User avatar */}
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
+                <View style={[styles.avatar, { backgroundColor: theme.primaryMuted }]}>
+                  <Text style={[styles.avatarText, { color: theme.primary }]}>
                     {item.first_name.charAt(0).toUpperCase()}
                   </Text>
                 </View>
 
                 {/* User information */}
                 <View style={styles.userInfo}>
-                  <Text style={styles.userName}>
+                  <Text style={[styles.userName, { color: theme.text }]}>
                     {item.first_name}{' '}
                     {item.last_name ?? ''}
                   </Text>
 
-                  <Text style={styles.email}>
+                  <Text style={[styles.email, { color: theme.textSecondary }]}>
                     {item.email}
                   </Text>
 
-                  <Text style={styles.detail}>
+                  <Text style={[styles.detail, { color: theme.textSecondary }]}>
                     Role: {item.role_name}
                   </Text>
 
-                  <Text style={styles.detail}>
+                  <Text style={[styles.detail, { color: theme.textSecondary }]}>
                     Department:{' '}
                     {item.department_name ?? 'Not assigned'}
                   </Text>
@@ -247,8 +259,8 @@ export default function UsersScreen() {
                     style={[
                       styles.status,
                       isActive
-                        ? styles.active
-                        : styles.inactive,
+                        ? { color: theme.success, backgroundColor: theme.successBackground }
+                        : { color: theme.danger, backgroundColor: theme.dangerBackground },
                     ]}
                   >
                     {isActive ? 'Active' : 'Inactive'}
@@ -265,8 +277,8 @@ export default function UsersScreen() {
                     style={({ pressed }) => [
                       styles.statusButton,
                       isActive
-                        ? styles.deactivateButton
-                        : styles.activateButton,
+                        ? { backgroundColor: theme.dangerBackground }
+                        : { backgroundColor: theme.successBackground },
                       (pressed || updatingUserId !== null) &&
                         styles.buttonPressed,
                     ]}
@@ -274,10 +286,10 @@ export default function UsersScreen() {
                     {isUpdating ? (
                       <ActivityIndicator
                         size="small"
-                        color="#0F172A"
+                        color={theme.text}
                       />
                     ) : (
-                      <Text style={styles.statusButtonText}>
+                      <Text style={[styles.statusButtonText, { color: isActive ? theme.danger : theme.success }]}>
                         {isActive
                           ? 'Deactivate User'
                           : 'Activate User'}
@@ -296,11 +308,11 @@ export default function UsersScreen() {
   }
   style={({ pressed }) => [
     styles.statusButton,
-    { backgroundColor: '#DBEAFE', marginTop: 8 },
+    { backgroundColor: theme.primaryMuted, marginTop: 8 },
     pressed && styles.buttonPressed,
   ]}
 >
-  <Text style={styles.statusButtonText}>
+  <Text style={[styles.statusButtonText, { color: theme.primary }]}>
     Edit User
   </Text>
 </Pressable>
@@ -312,52 +324,55 @@ export default function UsersScreen() {
         />
       )}
     </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#F8FAFC',
+    width: '100%',
+    maxWidth: 1040,
+    alignSelf: 'center',
+    paddingVertical: 24,
   },
 
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8FAFC',
   },
 
   helperText: {
     marginTop: 10,
-    color: '#64748B',
   },
 
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#0F172A',
   },
 
   subtitle: {
     marginTop: 6,
     marginBottom: 16,
-    color: '#64748B',
     fontSize: 14,
+  },
+  list: {
+    flex: 1,
   },
 
   createButton: {
     alignSelf: 'flex-start',
-    backgroundColor: '#2563EB',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 16,
   },
 
   createButtonText: {
-    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -371,10 +386,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     padding: 16,
     marginBottom: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     gap: 12,
   },
 
@@ -382,7 +395,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#DBEAFE',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -390,7 +402,6 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1D4ED8',
   },
 
   userInfo: {
@@ -401,19 +412,16 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#0F172A',
   },
 
   email: {
     marginTop: 4,
     marginBottom: 10,
-    color: '#64748B',
   },
 
   detail: {
     marginTop: 4,
     fontSize: 13,
-    color: '#475569',
   },
 
   status: {
@@ -427,16 +435,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  active: {
-    color: '#166534',
-    backgroundColor: '#DCFCE7',
-  },
-
-  inactive: {
-    color: '#991B1B',
-    backgroundColor: '#FEE2E2',
-  },
-
   statusButton: {
     alignSelf: 'flex-start',
     minHeight: 38,
@@ -445,21 +443,12 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingHorizontal: 14,
     paddingVertical: 9,
-    borderRadius: 8,
-  },
-
-  deactivateButton: {
-    backgroundColor: '#FEE2E2',
-  },
-
-  activateButton: {
-    backgroundColor: '#DCFCE7',
+    borderRadius: 10,
   },
 
   statusButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#0F172A',
   },
 
   emptyContainer: {
@@ -470,22 +459,15 @@ const styles = StyleSheet.create({
   emptyText: {
     padding: 24,
     textAlign: 'center',
-    color: '#64748B',
   },
 
   errorBox: {
     padding: 16,
-    backgroundColor: '#FEE2E2',
     borderRadius: 10,
-  },
-
-  errorText: {
-    color: '#991B1B',
   },
 
   retry: {
     marginTop: 10,
-    color: '#1D4ED8',
     fontWeight: '600',
   },
 });

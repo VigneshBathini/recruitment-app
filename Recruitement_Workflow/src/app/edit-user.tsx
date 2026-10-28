@@ -9,7 +9,7 @@ import {
   Text,
   TextInput,
   View,
-  useColorScheme,
+  useWindowDimensions,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import axios from 'axios';
@@ -20,6 +20,7 @@ import {
   type User,
 } from '@/services/user.service';
 import api from "@/services/api";
+import { useTheme } from '@/hooks/use-theme';
 
 const API_URL =
   process.env.EXPO_PUBLIC_API_URL ??
@@ -184,18 +185,21 @@ function getErrorMessage(
 
 export default function EditUserScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const isDark = useColorScheme() === 'dark';
+  const theme = useTheme();
+  const { width } = useWindowDimensions();
 
   const colors = {
-    background: isDark ? '#0F172A' : '#F8FAFC',
-    text: isDark ? '#F8FAFC' : '#0F172A',
-    secondaryText: isDark ? '#CBD5E1' : '#64748B',
-    border: isDark ? '#475569' : '#CBD5E1',
-    inputBackground: isDark ? '#1E293B' : '#FFFFFF',
-    selectedBackground: isDark ? '#334155' : '#DBEAFE',
-    primary: '#2563EB',
-    errorBackground: isDark ? '#451A1A' : '#FEE2E2',
-    errorText: isDark ? '#FCA5A5' : '#991B1B',
+    background: theme.background,
+    card: theme.backgroundElement,
+    text: theme.text,
+    secondaryText: theme.textSecondary,
+    border: theme.border,
+    inputBackground: theme.backgroundElement,
+    selectedBackground: theme.primaryMuted,
+    primary: theme.primary,
+    primaryText: theme.primaryText,
+    errorBackground: theme.dangerBackground,
+    errorText: theme.danger,
   };
 
   const [roles, setRoles] = useState<Role[]>([]);
@@ -390,9 +394,9 @@ if (!rolesResult.success || !departmentsResult.success) {
 
         <Pressable
           onPress={() => router.replace('/users')}
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: colors.primary }]}
         >
-          <Text style={styles.buttonText}>
+          <Text style={[styles.buttonText, { color: colors.primaryText }]}>
             Back to Users
           </Text>
         </Pressable>
@@ -403,7 +407,10 @@ if (!rolesResult.success || !departmentsResult.success) {
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}
-      contentContainerStyle={styles.container}
+      contentContainerStyle={[
+        styles.container,
+        { paddingHorizontal: width < 400 ? 16 : 24 },
+      ]}
       keyboardShouldPersistTaps="handled"
     >
       <Text style={[styles.heading, { color: colors.text }]}>
@@ -416,9 +423,15 @@ if (!rolesResult.success || !departmentsResult.success) {
           { color: colors.secondaryText },
         ]}
       >
-        Update this organization member's details.
+        Update this organization member&apos;s details.
       </Text>
 
+      <View
+        style={[
+          styles.formCard,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
+      >
       <Text style={[styles.label, { color: colors.text }]}>
         First Name *
       </Text>
@@ -517,13 +530,14 @@ if (!rolesResult.success || !departmentsResult.success) {
         ]}
       >
         {saving ? (
-          <ActivityIndicator color="#FFFFFF" />
+          <ActivityIndicator color={colors.primaryText} />
         ) : (
-          <Text style={styles.buttonText}>
+          <Text style={[styles.buttonText, { color: colors.primaryText }]}>
             Save Changes
           </Text>
         )}
       </Pressable>
+      </View>
 
       <Pressable
         onPress={() => router.back()}
@@ -545,7 +559,7 @@ if (!rolesResult.success || !departmentsResult.success) {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 24,
+    paddingVertical: 28,
     width: '100%',
     maxWidth: 680,
     alignSelf: 'center',
@@ -567,7 +581,14 @@ const styles = StyleSheet.create({
 
   subtitle: {
     fontSize: 15,
-    marginBottom: 24,
+    marginBottom: 20,
+  },
+
+  formCard: {
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 20,
+    gap: 2,
   },
 
   label: {
@@ -583,7 +604,7 @@ const styles = StyleSheet.create({
 
   input: {
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 16,
@@ -592,7 +613,7 @@ const styles = StyleSheet.create({
   dropdownTrigger: {
     minHeight: 48,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 12,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -602,7 +623,7 @@ const styles = StyleSheet.create({
   dropdownMenu: {
     marginTop: 4,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 12,
     overflow: 'hidden',
     zIndex: 10,
     elevation: 4,
@@ -624,7 +645,7 @@ const styles = StyleSheet.create({
   button: {
     marginTop: 28,
     padding: 15,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
   },
 
@@ -633,7 +654,6 @@ const styles = StyleSheet.create({
   },
 
   buttonText: {
-    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -644,10 +664,9 @@ const styles = StyleSheet.create({
 
   backButton: {
     marginTop: 20,
-    backgroundColor: '#2563EB',
     paddingHorizontal: 18,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 12,
   },
 
   cancelButton: {

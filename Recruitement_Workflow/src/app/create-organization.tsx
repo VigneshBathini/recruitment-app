@@ -96,15 +96,18 @@ export default function HomeScreen() {
   }
 
   return (
-    <ThemedView type="backgroundElement" style={styles.screen}>
+    <ThemedView style={styles.screen}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled">
         <View style={styles.content}>
           <View style={styles.heading}>
-            <View style={styles.eyebrow}>
-              <View style={styles.eyebrowDot} />
-              <ThemedText type="smallBold" style={styles.eyebrowText}>
+            <View style={[styles.eyebrow, { backgroundColor: theme.primaryMuted }]}>
+              <View style={[styles.eyebrowDot, { backgroundColor: theme.primary }]} />
+              <ThemedText
+                type="smallBold"
+                style={{ color: theme.primary }}
+              >
                 ORGANIZATION SETUP
               </ThemedText>
             </View>
@@ -117,7 +120,7 @@ export default function HomeScreen() {
             </ThemedText>
           </View>
 
-          <ThemedView style={[styles.card, { borderColor: theme.backgroundSelected }]}>
+          <ThemedView style={[styles.card, { borderColor: theme.border }]}>
             <View style={styles.cardHeading}>
               <ThemedText type="smallBold">Organization details</ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
@@ -163,12 +166,14 @@ export default function HomeScreen() {
                   styles.feedback,
                   {
                     backgroundColor:
-                      feedback.type === 'success' ? '#E9F8EF' : '#FFF0F0',
+                      feedback.type === 'success'
+                        ? theme.successBackground
+                        : theme.dangerBackground,
                   },
                 ]}>
                 <ThemedText
                   style={{
-                    color: feedback.type === 'success' ? '#176B37' : '#A32626',
+                    color: feedback.type === 'success' ? theme.success : theme.danger,
                   }}>
                   {feedback.message}
                 </ThemedText>
@@ -182,14 +187,14 @@ export default function HomeScreen() {
               onPress={handleSubmit}
               style={({ pressed }) => [
                 styles.submitButton,
-                { backgroundColor: theme.text },
+                { backgroundColor: theme.primary },
                 pressed && !submitting && styles.pressed,
                 submitting && styles.disabledButton,
               ]}>
               {submitting ? (
-                <ActivityIndicator color={theme.background} />
+                <ActivityIndicator color={theme.primaryText} />
               ) : (
-                <ThemedText style={{ color: theme.background, fontWeight: '700' }}>
+                <ThemedText style={{ color: theme.primaryText, fontWeight: '700' }}>
                   Create organization
                 </ThemedText>
               )}
@@ -245,7 +250,7 @@ function FormInput({
           styles.input,
           {
             backgroundColor: theme.backgroundElement,
-            borderColor: error ? '#C62828' : theme.backgroundSelected,
+            borderColor: error ? theme.danger : theme.border,
             color: theme.text,
           },
         ]}
@@ -256,7 +261,7 @@ function FormInput({
         </ThemedText>
       )}
       {error && (
-        <ThemedText type="small" style={styles.fieldError}>
+        <ThemedText type="small" style={{ color: theme.danger }}>
           {error}
         </ThemedText>
       )}
@@ -271,7 +276,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.six,
   },
   content: {
@@ -291,16 +296,11 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
-    backgroundColor: '#E8F0FF',
   },
   eyebrowDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#2563EB',
-  },
-  eyebrowText: {
-    color: '#1D4ED8',
   },
   title: {
     fontSize: 34,
@@ -313,12 +313,8 @@ const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
     borderRadius: 18,
-    padding: Spacing.five,
+    padding: Spacing.four,
     gap: Spacing.four,
-    shadowColor: '#101828',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.06,
-    shadowRadius: 24,
     elevation: 2,
   },
   cardHeading: {
@@ -333,9 +329,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: Spacing.three,
     fontSize: 16,
-  },
-  fieldError: {
-    color: '#A32626',
   },
   feedback: {
     borderRadius: 10,

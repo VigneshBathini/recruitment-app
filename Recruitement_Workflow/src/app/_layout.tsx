@@ -9,10 +9,12 @@ import {
   useRouter,
 } from 'expo-router';
 
+import { Colors } from '@/constants/theme';
 import { getToken } from '@/services/token.service';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme === 'dark' ? 'dark' : 'light'];
   const router = useRouter();
   const [authChecked, setAuthChecked] = useState(false);
 
@@ -48,32 +50,53 @@ export default function RootLayout() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [router]);
 
   if (!authChecked) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: colors.background,
+        }}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
+      <Stack
+        screenOptions={{
+          contentStyle: { backgroundColor: colors.background },
+          headerStyle: { backgroundColor: colors.backgroundElement },
+          headerTintColor: colors.text,
+          headerTitleStyle: { color: colors.text, fontSize: 16, fontWeight: '600' },
+          headerShadowVisible: false,
+        }}
+      >
         <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="index" options={{ title: 'Dashboard' }} />
-        <Stack.Screen name="create-organization" options={{ title: 'Create Organization' }} />
-        <Stack.Screen name="organizations" options={{ title: 'Organizations' }} />
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="create-organization"
+          options={{ title: 'Create Organization' }}
+        />
+        <Stack.Screen
+          name="organizations"
+          options={{ title: 'Organizations' }}
+        />
         <Stack.Screen name="departments" options={{ title: 'Departments' }} />
         <Stack.Screen name="create-user" options={{ title: 'Create User' }} />
         <Stack.Screen name="users" options={{ title: 'Users' }} />
         <Stack.Screen name="edit-user" options={{ title: 'Edit User' }} />
         <Stack.Screen name="explore" options={{ headerShown: false }} />
         <Stack.Screen
-  name="role-permissions"
-  options={{ title: 'Role & Permissions' }}
-/>
+          name="role-permissions"
+          options={{ title: 'Role & Permissions' }}
+        />
       </Stack>
     </ThemeProvider>
   );

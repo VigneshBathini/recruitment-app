@@ -7,6 +7,7 @@ import {
   StyleSheet,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import axios from 'axios';
 
@@ -34,6 +35,7 @@ import {
 
 export default function DepartmentsScreen() {
   const theme = useTheme();
+  const { width } = useWindowDimensions();
 
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [selectedOrganizationId, setSelectedOrganizationId] =
@@ -204,7 +206,7 @@ export default function DepartmentsScreen() {
   }
 
   return (
-    <ThemedView type="backgroundElement" style={styles.screen}>
+    <ThemedView style={styles.screen}>
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
@@ -219,13 +221,13 @@ export default function DepartmentsScreen() {
         <ThemedView
           style={[
             styles.card,
-            { borderColor: theme.backgroundSelected },
+            { borderColor: theme.border },
           ]}
         >
           <ThemedText type="subtitle">Select Organization</ThemedText>
 
           {loadingOrganizations ? (
-            <ActivityIndicator />
+            <ActivityIndicator color={theme.primary} />
           ) : organizations.length === 0 ? (
             <ThemedText themeColor="textSecondary">
               No organizations found. Create an organization first.
@@ -237,7 +239,7 @@ export default function DepartmentsScreen() {
                 onPress={() => setShowOrganizations((value) => !value)}
                 style={[
                   styles.selector,
-                  { borderColor: theme.backgroundSelected },
+                  { borderColor: theme.border },
                 ]}
               >
                 <ThemedText>
@@ -250,7 +252,7 @@ export default function DepartmentsScreen() {
                 <View
                   style={[
                     styles.dropdown,
-                    { borderColor: theme.backgroundSelected },
+                    { borderColor: theme.border },
                   ]}
                 >
                   {organizations.map((organization) => (
@@ -281,7 +283,7 @@ export default function DepartmentsScreen() {
         <ThemedView
           style={[
             styles.card,
-            { borderColor: theme.backgroundSelected },
+            { borderColor: theme.border },
           ]}
         >
           <ThemedText type="subtitle">
@@ -302,7 +304,7 @@ export default function DepartmentsScreen() {
                 {
                   color: theme.text,
                   backgroundColor: theme.backgroundElement,
-                  borderColor: theme.backgroundSelected,
+                  borderColor: theme.border,
                 },
               ]}
             />
@@ -324,21 +326,21 @@ export default function DepartmentsScreen() {
                 {
                   color: theme.text,
                   backgroundColor: theme.backgroundElement,
-                  borderColor: theme.backgroundSelected,
+                  borderColor: theme.border,
                 },
               ]}
             />
           </View>
 
           {!!error && (
-            <View style={styles.errorBox}>
-              <ThemedText style={styles.errorText}>{error}</ThemedText>
+            <View style={[styles.errorBox, { backgroundColor: theme.dangerBackground }]}>
+              <ThemedText style={{ color: theme.danger }}>{error}</ThemedText>
             </View>
           )}
 
           {!!feedback && (
-            <View style={styles.successBox}>
-              <ThemedText style={styles.successText}>{feedback}</ThemedText>
+            <View style={[styles.successBox, { backgroundColor: theme.successBackground }]}>
+              <ThemedText style={{ color: theme.success }}>{feedback}</ThemedText>
             </View>
           )}
 
@@ -348,15 +350,15 @@ export default function DepartmentsScreen() {
             onPress={handleSubmit}
             style={[
               styles.primaryButton,
-              { backgroundColor: theme.text },
+              { backgroundColor: theme.primary },
               submitting && styles.disabled,
             ]}
           >
             {submitting ? (
-              <ActivityIndicator color={theme.background} />
+              <ActivityIndicator color={theme.primaryText} />
             ) : (
               <ThemedText
-                style={{ color: theme.background, fontWeight: '700' }}
+                style={{ color: theme.primaryText, fontWeight: '700' }}
               >
                 {editingId === null ? 'Create Department' : 'Save Changes'}
               </ThemedText>
@@ -369,7 +371,7 @@ export default function DepartmentsScreen() {
               onPress={resetForm}
               style={[
                 styles.secondaryButton,
-                { borderColor: theme.backgroundSelected },
+                { borderColor: theme.border },
               ]}
             >
               <ThemedText>Cancel Editing</ThemedText>
@@ -386,7 +388,7 @@ export default function DepartmentsScreen() {
             disabled={loadingDepartments}
             style={[
               styles.secondaryButton,
-              { borderColor: theme.backgroundSelected },
+              { borderColor: theme.border },
             ]}
           >
             <ThemedText>Refresh</ThemedText>
@@ -394,7 +396,7 @@ export default function DepartmentsScreen() {
         </View>
 
         {loadingDepartments ? (
-          <ActivityIndicator size="large" />
+          <ActivityIndicator size="large" color={theme.primary} />
         ) : selectedOrganizationId === null ? (
           <ThemedText themeColor="textSecondary">
             Select an organization to view its departments.
@@ -410,7 +412,8 @@ export default function DepartmentsScreen() {
                 key={department.id}
                 style={[
                   styles.departmentCard,
-                  { borderColor: theme.backgroundSelected },
+                  { borderColor: theme.border },
+                  width < 540 && styles.departmentCardCompact,
                 ]}
               >
                 <View style={styles.departmentInfo}>
@@ -428,7 +431,10 @@ export default function DepartmentsScreen() {
                   onPress={() => startEditing(department)}
                   style={[
                     styles.editButton,
-                    { borderColor: theme.backgroundSelected },
+                    {
+                      borderColor: theme.border,
+                      alignSelf: width < 540 ? 'flex-start' : 'auto',
+                    },
                   ]}
                 >
                   <ThemedText>Edit</ThemedText>
@@ -456,7 +462,7 @@ const styles = StyleSheet.create({
   },
   content: {
     width: '100%',
-    maxWidth: 900,
+    maxWidth: 960,
     alignSelf: 'center',
     padding: Spacing.four,
     gap: Spacing.four,
@@ -466,7 +472,7 @@ const styles = StyleSheet.create({
   },
   card: {
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: 16,
     padding: Spacing.four,
     gap: Spacing.three,
   },
@@ -476,7 +482,7 @@ const styles = StyleSheet.create({
   selector: {
     minHeight: 48,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 12,
     paddingHorizontal: Spacing.three,
     flexDirection: 'row',
     alignItems: 'center',
@@ -484,7 +490,7 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 12,
     overflow: 'hidden',
   },
   dropdownItem: {
@@ -493,7 +499,7 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 48,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 12,
     paddingHorizontal: Spacing.three,
     fontSize: 16,
   },
@@ -506,7 +512,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: Spacing.three,
   },
   secondaryButton: {
@@ -524,18 +530,12 @@ const styles = StyleSheet.create({
   errorBox: {
     padding: Spacing.three,
     borderRadius: 8,
-    backgroundColor: '#FFF0F0',
-  },
-  errorText: {
-    color: '#A32626',
+    backgroundColor: '#FEE4E2',
   },
   successBox: {
     padding: Spacing.three,
-    borderRadius: 8,
+    borderRadius: 12,
     backgroundColor: '#E9F8EF',
-  },
-  successText: {
-    color: '#176B37',
   },
   listHeading: {
     flexDirection: 'row',
@@ -548,12 +548,16 @@ const styles = StyleSheet.create({
   },
   departmentCard: {
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: Spacing.three,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.three,
+  },
+  departmentCardCompact: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
   },
   departmentInfo: {
     flex: 1,
@@ -561,7 +565,7 @@ const styles = StyleSheet.create({
   },
   editButton: {
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 12,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
   },

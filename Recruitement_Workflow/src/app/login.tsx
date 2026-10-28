@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -11,23 +10,39 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from "react-native";
-import { router } from "expo-router";
-import axios from "axios";
-import { loginUser } from "@/services/auth.service";
-import { saveToken } from "@/services/token.service";
+  useWindowDimensions,
+} from 'react-native';
+import { router } from 'expo-router';
+import { isAxiosError } from 'axios';
+
+import { useTheme } from '@/hooks/use-theme';
+import { loginUser } from '@/services/auth.service';
+import { saveToken } from '@/services/token.service';
 
 export default function LoginScreen() {
-  const [organizationSlug, setOrganizationSlug] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const theme = useTheme();
+  const [organizationSlug, setOrganizationSlug] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const { width } = useWindowDimensions();
+
+  const colors = {
+    background: theme.background,
+    card: theme.backgroundElement,
+    text: theme.text,
+    secondaryText: theme.textSecondary,
+    border: theme.border,
+    input: theme.backgroundElement,
+    primary: theme.primary,
+    primaryText: theme.primaryText,
+  };
 
   async function handleLogin() {
     if (!organizationSlug.trim() || !email.trim() || !password) {
       Alert.alert(
-        "Validation",
-        "Please enter your organization, email, and password."
+        'Validation',
+        'Please enter your organization, email, and password.',
       );
       return;
     }
@@ -43,18 +58,18 @@ export default function LoginScreen() {
 
       await saveToken(result.token);
 
-      Alert.alert("Success", `Welcome ${result.user.first_name}!`);
-      router.replace("/");
+      Alert.alert('Success', `Welcome ${result.user.first_name}!`);
+      router.replace('/');
     } catch (error) {
-      let message = "Unable to log in. Please try again.";
+      let message = 'Unable to log in. Please try again.';
 
-      if (axios.isAxiosError(error)) {
+      if (isAxiosError(error)) {
         message =
           error.response?.data?.message ??
-          "Cannot connect to the server. Check your API URL.";
+          'Cannot connect to the server. Check your API URL.';
       }
 
-      Alert.alert("Login Failed", message);
+      Alert.alert('Login Failed', message);
     } finally {
       setLoading(false);
     }
@@ -62,69 +77,154 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingHorizontal: width < 400 ? 16 : 24 },
+        ]}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.card}>
-          <Text style={styles.brand}>RECRUITMENT WORKFLOW</Text>
+        <View
+          style={[
+            styles.card,
+            width < 400 && styles.cardCompact,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <View style={styles.brandRow}>
+            <View style={[styles.brandMark, { backgroundColor: colors.primary }]}>
+              <Text style={[styles.brandMarkText, { color: colors.primaryText }]}>R</Text>
+            </View>
+            <View>
+              <Text style={[styles.brandName, { color: colors.text }]}>
+                Recruitment
+              </Text>
+              <Text style={[styles.brandCaption, { color: colors.secondaryText }]}>
+                WORKFLOW PLATFORM
+              </Text>
+            </View>
+          </View>
 
-          <Text style={styles.title}>Welcome back</Text>
-          <Text style={styles.subtitle}>
-            Sign in to manage your recruitment activities.
-          </Text>
+          <View style={styles.intro}>
+            <Text style={[styles.eyebrow, { color: colors.primary }]}>
+              YOUR TEAM’S WORKSPACE
+            </Text>
+            <Text style={[styles.title, { color: colors.text }]}>
+              Welcome back
+            </Text>
+            <Text style={[styles.subtitle, { color: colors.secondaryText }]}>
+              Sign in to manage your organization and recruitment workflow.
+            </Text>
+          </View>
 
-          <Text style={styles.label}>Organization slug</Text>
-          <TextInput
-            style={styles.input}
-            value={organizationSlug}
-            onChangeText={setOrganizationSlug}
-            placeholder="Enter your organization slug"
-            autoCapitalize="none"
-            autoCorrect={false}
-            editable={!loading}
-          />
+          <View style={styles.form}>
+            <View style={styles.field}>
+              <Text style={[styles.label, { color: colors.text }]}>
+                Organization slug
+              </Text>
+              <TextInput
+                accessibilityLabel="Organization slug"
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colors.input,
+                    borderColor: colors.border,
+                    color: colors.text,
+                  },
+                ]}
+                value={organizationSlug}
+                onChangeText={setOrganizationSlug}
+                placeholder="e.g. acme-talent"
+                placeholderTextColor={colors.secondaryText}
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!loading}
+                returnKeyType="next"
+              />
+            </View>
 
-          <Text style={styles.label}>Email address</Text>
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            placeholder="Enter your work email"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            editable={!loading}
-          />
+            <View style={styles.field}>
+              <Text style={[styles.label, { color: colors.text }]}>
+                Work email
+              </Text>
+              <TextInput
+                accessibilityLabel="Work email"
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colors.input,
+                    borderColor: colors.border,
+                    color: colors.text,
+                  },
+                ]}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="you@company.com"
+                placeholderTextColor={colors.secondaryText}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!loading}
+                returnKeyType="next"
+              />
+            </View>
 
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            placeholder="Enter your password"
-            secureTextEntry
-            autoCapitalize="none"
-            editable={!loading}
-            onSubmitEditing={handleLogin}
-          />
+            <View style={styles.field}>
+              <Text style={[styles.label, { color: colors.text }]}>
+                Password
+              </Text>
+              <TextInput
+                accessibilityLabel="Password"
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colors.input,
+                    borderColor: colors.border,
+                    color: colors.text,
+                  },
+                ]}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Enter your password"
+                placeholderTextColor={colors.secondaryText}
+                secureTextEntry
+                autoCapitalize="none"
+                editable={!loading}
+                returnKeyType="go"
+                onSubmitEditing={() => void handleLogin()}
+              />
+            </View>
 
-          <TouchableOpacity
-            style={[styles.button, loading && styles.disabledButton]}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.buttonText}>Sign In</Text>
-            )}
-          </TouchableOpacity>
+            <TouchableOpacity
+              accessibilityRole="button"
+              style={[
+                styles.button,
+                { backgroundColor: colors.primary },
+                loading && styles.disabledButton,
+              ]}
+              onPress={() => void handleLogin()}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              {loading ? (
+                <ActivityIndicator color={colors.primaryText} />
+              ) : (
+                <Text style={[styles.buttonText, { color: colors.primaryText }]}>
+                  Sign in
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
 
-          <Text style={styles.footer}>
+          <View style={[styles.footerDivider, { backgroundColor: colors.border }]} />
+          <Text style={[styles.footer, { color: colors.secondaryText }]}>
             Secure access for your organization
           </Text>
         </View>
@@ -136,78 +236,111 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F4F6FA",
   },
   content: {
     flexGrow: 1,
-    justifyContent: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 24,
   },
   card: {
-    width: "100%",
-    maxWidth: 440,
-    alignSelf: "center",
-    backgroundColor: "#FFFFFF",
-    padding: 28,
-    borderRadius: 16,
+    width: '100%',
+    maxWidth: 470,
+    padding: 30,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    elevation: 3,
   },
-  brand: {
-    color: "#4F46E5",
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 1.2,
-    marginBottom: 24,
+  cardCompact: {
+    padding: 20,
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 34,
+  },
+  brandMark: {
+    width: 46,
+    height: 46,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brandMarkText: {
+    fontSize: 23,
+    fontWeight: '800',
+  },
+  brandName: {
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '700',
+  },
+  brandCaption: {
+    fontSize: 9,
+    lineHeight: 14,
+    letterSpacing: 1,
+    fontWeight: '700',
+  },
+  intro: {
+    gap: 8,
+    marginBottom: 26,
+  },
+  eyebrow: {
+    fontSize: 10,
+    lineHeight: 15,
+    letterSpacing: 1.1,
+    fontWeight: '700',
   },
   title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 8,
+    fontSize: 30,
+    lineHeight: 36,
+    letterSpacing: -0.5,
+    fontWeight: '700',
   },
   subtitle: {
-    color: "#6B7280",
     fontSize: 14,
     lineHeight: 21,
-    marginBottom: 28,
+  },
+  form: {
+    gap: 18,
+  },
+  field: {
+    gap: 8,
   },
   label: {
-    color: "#374151",
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 8,
+    fontSize: 13,
+    fontWeight: '600',
   },
   input: {
-    height: 48,
+    minHeight: 50,
+    paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    marginBottom: 20,
-    backgroundColor: "#FFFFFF",
-    color: "#111827",
+    borderRadius: 12,
+    fontSize: 14,
   },
   button: {
-    height: 48,
-    borderRadius: 8,
-    backgroundColor: "#4F46E5",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 4,
+    minHeight: 52,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 3,
   },
   disabledButton: {
     opacity: 0.65,
   },
   buttonText: {
-    color: "#FFFFFF",
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: '700',
+  },
+  footerDivider: {
+    height: 1,
+    marginTop: 24,
+    marginBottom: 16,
   },
   footer: {
-    textAlign: "center",
-    color: "#6B7280",
+    textAlign: 'center',
     fontSize: 12,
-    marginTop: 24,
+    lineHeight: 18,
   },
 });

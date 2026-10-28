@@ -12,12 +12,14 @@ import axios from 'axios';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import {
   getOrganizations,
   type Organization,
 } from '@/services/organizations';
 
 export default function OrganizationsScreen() {
+  const theme = useTheme();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -59,12 +61,20 @@ export default function OrganizationsScreen() {
           </ThemedText>
         </View>
 
-        <View style={styles.summary}>
+        <View
+          style={[
+            styles.summary,
+            {
+              backgroundColor: theme.backgroundElement,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           <ThemedText style={styles.summaryLabel}>
             Total Organizations
           </ThemedText>
 
-          <ThemedText type="title">
+          <ThemedText style={styles.summaryCount}>
             {loading ? '—' : organizations.length}
           </ThemedText>
         </View>
@@ -76,7 +86,7 @@ export default function OrganizationsScreen() {
 
           <Pressable
             onPress={() => setRefreshKey((value) => value + 1)}
-            style={styles.refreshButton}
+            style={[styles.refreshButton, { borderColor: theme.border }]}
             accessibilityRole="button"
           >
             <ThemedText>Refresh</ThemedText>
@@ -84,28 +94,28 @@ export default function OrganizationsScreen() {
         </View>
 
         {loading ? (
-          <View style={styles.message}>
-            <ActivityIndicator size="large" />
+          <View style={[styles.message, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+            <ActivityIndicator size="large" color={theme.primary} />
             <ThemedText>Loading organizations...</ThemedText>
           </View>
         ) : error ? (
-          <View style={styles.message}>
+          <View style={[styles.message, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
             <ThemedText>{error}</ThemedText>
 
             <Pressable
               onPress={() => setRefreshKey((value) => value + 1)}
-              style={styles.actionButton}
+              style={[styles.actionButton, { borderColor: theme.border }]}
               accessibilityRole="button"
             >
               <ThemedText>Try Again</ThemedText>
             </Pressable>
           </View>
         ) : organizations.length === 0 ? (
-          <View style={styles.message}>
+          <View style={[styles.message, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
             <ThemedText type="subtitle">
               No organizations found
             </ThemedText>
-            <ThemedText style={styles.subtitle}>
+            <ThemedText style={[styles.subtitle, { color: theme.textSecondary }]}>
               Create an organization first to see it here.
             </ThemedText>
           </View>
@@ -117,7 +127,13 @@ export default function OrganizationsScreen() {
               return (
                 <View
                   key={organization.id}
-                  style={styles.card}
+                  style={[
+                    styles.card,
+                    {
+                      backgroundColor: theme.backgroundElement,
+                      borderColor: theme.border,
+                    },
+                  ]}
                 >
                   <View style={styles.cardHeader}>
                     <View style={styles.cardTitleContainer}>
@@ -133,17 +149,17 @@ export default function OrganizationsScreen() {
                     <View
                       style={[
                         styles.status,
-                        isActive
-                          ? styles.activeStatus
-                          : styles.inactiveStatus,
+                        {
+                          backgroundColor: isActive
+                            ? theme.successBackground
+                            : theme.backgroundSelected,
+                        },
                       ]}
                     >
                       <ThemedText
                         style={[
                           styles.statusText,
-                          isActive
-                            ? styles.activeText
-                            : styles.inactiveText,
+                          { color: isActive ? theme.success : theme.textSecondary },
                         ]}
                       >
                         {isActive ? 'Active' : 'Inactive'}
@@ -151,7 +167,9 @@ export default function OrganizationsScreen() {
                     </View>
                   </View>
 
-                  <View style={styles.divider} />
+                  <View
+                    style={[styles.divider, { backgroundColor: theme.border }]}
+                  />
 
                   <View style={styles.detailRow}>
                     <ThemedText style={styles.detailLabel}>
@@ -185,9 +203,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: Spacing.four,
+    padding: Spacing.three,
     gap: Spacing.four,
-    maxWidth: 900,
+    maxWidth: 960,
     width: '100%',
     alignSelf: 'center',
   },
@@ -200,12 +218,16 @@ const styles = StyleSheet.create({
   summary: {
     padding: Spacing.four,
     borderWidth: 1,
-    borderColor: '#80808055',
-    borderRadius: 12,
+    borderRadius: 16,
     gap: Spacing.two,
   },
   summaryLabel: {
     opacity: 0.7,
+  },
+  summaryCount: {
+    fontSize: 32,
+    lineHeight: 38,
+    fontWeight: '700',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -217,8 +239,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.three,
     borderWidth: 1,
-    borderColor: '#80808055',
-    borderRadius: 8,
+    borderRadius: 12,
   },
   list: {
     gap: Spacing.three,
@@ -226,8 +247,7 @@ const styles = StyleSheet.create({
   card: {
     padding: Spacing.four,
     borderWidth: 1,
-    borderColor: '#80808055',
-    borderRadius: 12,
+    borderRadius: 16,
     gap: Spacing.three,
   },
   cardHeader: {
@@ -248,25 +268,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.two,
     borderRadius: 6,
   },
-  activeStatus: {
-    backgroundColor: '#D9F5DF',
-  },
-  inactiveStatus: {
-    backgroundColor: '#EEEEEE',
-  },
   statusText: {
     fontSize: 12,
     fontWeight: '600',
   },
-  activeText: {
-    color: '#176B32',
-  },
-  inactiveText: {
-    color: '#555555',
-  },
   divider: {
     height: 1,
-    backgroundColor: '#80808033',
   },
   detailRow: {
     flexDirection: 'row',
@@ -284,8 +291,7 @@ const styles = StyleSheet.create({
   message: {
     padding: Spacing.four,
     borderWidth: 1,
-    borderColor: '#80808055',
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: 'center',
     gap: Spacing.three,
   },
@@ -293,7 +299,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.three,
     borderWidth: 1,
-    borderColor: '#80808055',
-    borderRadius: 8,
+    borderRadius: 12,
   },
 });
