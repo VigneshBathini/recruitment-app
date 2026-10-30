@@ -10,11 +10,12 @@ export type LoginInput = {
 
 export type AuthUser = {
   id: number;
-  organization_id: number;
-  organization_slug: string;
-  role_id: number;
+  account_type: "platform_admin" | "organization_user";
+  organization_id?: number;
+  organization_slug?: string;
+  role_id?: number;
   role_name: string;
-  department_id: number | null;
+  department_id?: number | null;
   first_name: string;
   last_name: string | null;
   email: string;

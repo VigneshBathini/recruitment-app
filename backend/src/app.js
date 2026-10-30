@@ -11,6 +11,7 @@ import userRoutes from "./routes/user.routes.js";
 import roleRoutes from "./routes/role.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import permissionRoutes from "./routes/permission.routes.js";
+import platformAdminRoutes from "./routes/platformAdmin.routes.js";
 
 const app = express();
 
@@ -50,7 +51,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/permissions", permissionRoutes);
-
+app.use("/api/platform-admin", platformAdminRoutes);
 
 const PORT = process.env.PORT || 5000;
 

@@ -2,15 +2,18 @@
 import { z } from "zod";
 
 export const loginSchema = z.object({
-  organization_slug: z
-    .string()
-    .trim()
-    .min(1, "Organization is required")
-    .max(150, "Organization identifier is too long")
-    .regex(
-      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-      "Enter a valid organization slug"
-    ),
+ 
+organization_slug: z
+  .string()
+  .trim()
+  .max(150, "Organization identifier is too long")
+  .regex(
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+    "Enter a valid organization slug"
+  )
+  .optional()
+  .or(z.literal("")),
+
 
   email: z
     .string()

@@ -51,3 +51,40 @@ export async function findUserById(id) {
 
   return rows[0] ?? null;
 }
+
+
+export async function findPlatformAdminByEmail(email) {
+
+  const [rows] = await pool.execute(
+     `SELECT
+        id,
+        first_name,
+        last_name,
+        email,
+        password_hash,
+        is_active
+     FROM platform_admins
+     WHERE email = ?
+     LIMIT 1`,
+    [email]
+  )
+    return rows[0] ?? null;
+}
+
+
+export async function findPlatformAdminById(id) {
+  const [rows] = await pool.execute(
+    `SELECT
+        id,
+        first_name,
+        last_name,
+        email,
+        is_active
+     FROM platform_admins
+     WHERE id = ?
+     LIMIT 1`,
+    [id]
+  );
+
+  return rows[0] ?? null;
+}
