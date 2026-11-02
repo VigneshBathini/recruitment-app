@@ -17,7 +17,7 @@ import { isAxiosError } from 'axios';
 
 import { useTheme } from '@/hooks/use-theme';
 import { loginUser } from '@/services/auth.service';
-import { saveToken ,  saveAccountType,} from '@/services/token.service';
+import { saveToken, saveAccountType, saveOrganizationContext } from '@/services/token.service';
 
 export default function LoginScreen() {
   const theme = useTheme();
@@ -62,6 +62,15 @@ Alert.alert('Success', `Welcome ${result.user.first_name}!`);
 
 await saveToken(result.token);
 await saveAccountType(result.user.account_type);
+
+if (result.user.account_type === 'organization_user' && result.user.organization_id && result.user.organization_slug) {
+  await saveOrganizationContext({
+    id: result.user.organization_id,
+    name: result.user.organization_name ?? result.user.organization_slug,
+    slug: result.user.organization_slug,
+    role_name: result.user.role_name,
+  });
+}
 
 if (result.user.account_type === "platform_admin") {
   router.replace("/platform-admin");

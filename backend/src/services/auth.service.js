@@ -111,6 +111,7 @@ export async function loginService({
       account_type: "organization_user",
       organization_id: Number(user.organization_id),
       organization_slug: user.organization_slug,
+      organization_name: user.organization_name,
       role_id: Number(user.role_id),
       role_name: user.role_name,
       department_id:

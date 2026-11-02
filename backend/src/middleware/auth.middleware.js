@@ -98,9 +98,12 @@ export async function authenticateToken(req, res, next) {
     // 3. Use current database permissions, not stale JWT role details.
     req.user = {
       id: Number(user.id),
+      account_type: "organization_user",
       organization_id: Number(user.organization_id),
       role_id: Number(user.role_id),
       role_name: user.role_name,
+      organization_slug: user.organization_slug,
+      organization_name: user.organization_name,
       department_id:
         user.department_id == null ? null : Number(user.department_id),
     };

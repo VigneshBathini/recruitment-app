@@ -18,20 +18,6 @@ import { logoutUser } from '@/services/auth.service';
 
 const modules = [
   {
-    title: 'Create Organization',
-    description: 'Set up a new organization and get your workspace started.',
-    category: 'GET STARTED',
-    icon: '+',
-    route: '/create-organization',
-  },
-  {
-    title: 'Organizations',
-    description: 'View and manage organizations on your platform.',
-    category: 'ORGANIZATION',
-    icon: 'O',
-    route: '/organizations',
-  },
-  {
     title: 'Departments',
     description: 'Organize your teams and manage department details.',
     category: 'STRUCTURE',
@@ -125,18 +111,18 @@ export default function HomeScreen() {
                 Your people.{'\n'}Your workflow.
               </ThemedText>
               <ThemedText style={styles.heroSubtitle}>
-                A clear home for your organizations, teams, and access settings.
+                A clear home for your organization, teams, and access settings.
               </ThemedText>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => router.push('/create-organization')}
+                onPress={() => router.push('/departments')}
                 style={({ pressed }) => [
                   styles.heroButton,
                   pressed && styles.pressed,
                 ]}
               >
                 <ThemedText style={styles.heroButtonText}>
-                  Set up an organization
+                  Manage departments
                 </ThemedText>
                 <ThemedText style={styles.heroButtonArrow}>→</ThemedText>
               </Pressable>

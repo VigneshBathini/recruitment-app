@@ -8,6 +8,8 @@ import {
   View,
 } from 'react-native';
 import axios from 'axios';
+import { router } from 'expo-router';
+import { Alert } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -15,6 +17,7 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import {
   getOrganizations,
+  setOrganizationStatus,
   type Organization,
 } from '@/services/organizations';
 
@@ -179,6 +182,21 @@ export default function OrganizationsScreen() {
                       {organization.id}
                     </ThemedText>
                   </View>
+                  <View style={styles.actions}>
+                    <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/create-organization', params: { id: String(organization.id), name: organization.name, slug: organization.slug, email: organization.email ?? '' } })} style={[styles.actionButton, { borderColor: theme.border }]}>
+                      <ThemedText>Edit</ThemedText>
+                    </Pressable>
+                    <Pressable accessibilityRole="button" onPress={async () => {
+                      try {
+                        await setOrganizationStatus(organization.id, !isActive);
+                        setRefreshKey((value) => value + 1);
+                      } catch (err) {
+                        Alert.alert('Update failed', axios.isAxiosError(err) ? err.response?.data?.message ?? 'Unable to update organization.' : 'Unable to update organization.');
+                      }
+                    }} style={[styles.actionButton, { borderColor: theme.border }]}>
+                      <ThemedText>{isActive ? 'Deactivate' : 'Activate'}</ThemedText>
+                    </Pressable>
+                  </View>
 
                   <View style={styles.detailRow}>
                     <ThemedText style={styles.detailLabel}>
@@ -301,4 +319,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 12,
   },
+  actions: { flexDirection: 'row', gap: Spacing.two, flexWrap: 'wrap' },
 });

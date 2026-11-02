@@ -15,6 +15,7 @@ export async function findUserByEmailAndOrganization(email, organizationSlug) {
         u.is_active,
         r.name AS role_name,
         o.slug AS organization_slug,
+        o.name AS organization_name,
         o.is_active AS organization_is_active
      FROM users u
      INNER JOIN roles r ON r.id = u.role_id
@@ -40,6 +41,8 @@ export async function findUserById(id) {
         u.email,
         u.is_active,
         o.is_active AS organization_is_active,
+        o.slug AS organization_slug,
+        o.name AS organization_name,
         r.name AS role_name
      FROM users u
      INNER JOIN roles r ON r.id = u.role_id

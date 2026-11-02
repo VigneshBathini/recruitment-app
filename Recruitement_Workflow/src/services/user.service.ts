@@ -68,9 +68,10 @@ export async function createUser(
 export async function updateUser(
   id: number,
   input: UpdateUserInput,
+  organizationId?: number,
 ): Promise<User> {
   const response = await api.put<UserResponse>(
-    `/users/${id}`,
+    `/users/${id}${organizationId ? `?organizationId=${organizationId}` : ''}`,
     input,
   );
 
@@ -80,9 +81,10 @@ export async function updateUser(
 export async function updateUserStatus(
   id: number,
   isActive: boolean,
+  organizationId?: number,
 ): Promise<User> {
   const response = await api.patch<UserResponse>(
-    `/users/${id}/status`,
+    `/users/${id}/status${organizationId ? `?organizationId=${organizationId}` : ''}`,
     {
       is_active: isActive,
     },

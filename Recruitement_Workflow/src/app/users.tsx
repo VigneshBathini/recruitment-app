@@ -20,8 +20,8 @@ import {
   type User,
 } from '@/services/user.service';
 import { useTheme } from '@/hooks/use-theme';
-
-const ORGANIZATION_ID = 1;
+import { getAccountType } from '@/services/token.service';
+import { getManagedOrganizations, type Organization } from '@/services/organizations';
 
 function getErrorMessage(
   error: unknown,
@@ -42,6 +42,10 @@ export default function UsersScreen() {
   const theme = useTheme();
   const { width } = useWindowDimensions();
   const [users, setUsers] = useState<User[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState<number | null>(null);
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
+  const [showOrganizations, setShowOrganizations] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -49,12 +53,36 @@ export default function UsersScreen() {
     null,
   );
 
-  // Load users through the service.
+  useEffect(() => {
+    let cancelled = false;
+    async function loadOrganizations() {
+      try {
+        const [accountType, data] = await Promise.all([getAccountType(), getManagedOrganizations()]);
+        if (cancelled) return;
+        setIsPlatformAdmin(accountType === 'platform_admin');
+        setOrganizations(data);
+        setSelectedOrganizationId(accountType === 'platform_admin' ? null : data[0]?.id ?? null);
+      } catch (err) {
+        if (!cancelled) {
+          setError(getErrorMessage(err, 'Failed to load organizations.'));
+          setLoading(false);
+        }
+      }
+    }
+    void loadOrganizations();
+    return () => { cancelled = true; };
+  }, []);
+
   const fetchUsers = useCallback(async () => {
+    if (selectedOrganizationId === null) {
+      setUsers([]);
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
     try {
       setError('');
-
-      const data = await getUsers(ORGANIZATION_ID);
+      const data = await getUsers(selectedOrganizationId);
 
       setUsers(data);
     } catch (err) {
@@ -63,7 +91,7 @@ export default function UsersScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [selectedOrganizationId]);
 
   useEffect(() => {
     fetchUsers();
@@ -109,6 +137,7 @@ export default function UsersScreen() {
               const updatedUser = await updateUserStatus(
                 user.id,
                 nextIsActive,
+                isPlatformAdmin ? selectedOrganizationId ?? undefined : undefined,
               );
 
               setUsers((previousUsers) =>
@@ -170,14 +199,29 @@ export default function UsersScreen() {
         Manage organization members, roles, and departments.
       </Text>
 
+      {isPlatformAdmin && (
+        <View style={{ gap: 8 }}>
+          <Pressable accessibilityRole="button" onPress={() => setShowOrganizations((value) => !value)} style={[styles.statusButton, { borderColor: theme.border }]}>
+            <Text style={{ color: theme.text }}>{organizations.find((org) => org.id === selectedOrganizationId)?.name ?? 'Select organization'}</Text>
+          </Pressable>
+          {showOrganizations && organizations.map((organization) => (
+            <Pressable key={organization.id} onPress={() => { setSelectedOrganizationId(organization.id); setShowOrganizations(false); }} style={[styles.statusButton, { borderColor: theme.border }]}>
+              <Text style={{ color: theme.text }}>{organization.name}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+
       {/* Create User navigation */}
       <Pressable
         accessibilityRole="button"
-        onPress={() => router.push('/create-user' as any)}
+        disabled={isPlatformAdmin && selectedOrganizationId === null}
+        onPress={() => router.push({ pathname: '/create-user' as any, params: isPlatformAdmin && selectedOrganizationId ? { organizationId: String(selectedOrganizationId) } : {} })}
         style={({ pressed }) => [
           styles.createButton,
           { backgroundColor: theme.primary },
           pressed && styles.buttonPressed,
+          isPlatformAdmin && selectedOrganizationId === null && { opacity: 0.5 },
         ]}
       >
         <Text style={[styles.createButtonText, { color: theme.primaryText }]}>
@@ -303,7 +347,7 @@ export default function UsersScreen() {
   onPress={() =>
     router.push({
       pathname: '/edit-user' as any,
-      params: { id: String(item.id) },
+      params: { id: String(item.id), ...(isPlatformAdmin && selectedOrganizationId ? { organizationId: String(selectedOrganizationId) } : {}) },
     })
   }
   style={({ pressed }) => [

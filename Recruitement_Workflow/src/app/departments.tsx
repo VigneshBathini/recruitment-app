@@ -15,6 +15,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { getAccountType } from '@/services/token.service';
 
 import {
   createDepartmentSchema,
@@ -29,7 +30,7 @@ import {
 } from '@/services/departments';
 
 import {
-  getOrganizations,
+  getManagedOrganizations,
   type Organization,
 } from '@/services/organizations';
 
@@ -38,6 +39,7 @@ export default function DepartmentsScreen() {
   const { width } = useWindowDimensions();
 
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
   const [selectedOrganizationId, setSelectedOrganizationId] =
     useState<number | null>(null);
 
@@ -64,7 +66,9 @@ export default function DepartmentsScreen() {
     setError('');
 
     try {
-      const data = await getOrganizations();
+      const accountType = await getAccountType();
+      const data = await getManagedOrganizations();
+      setIsPlatformAdmin(accountType === 'platform_admin');
 
       setOrganizations(data);
 
@@ -73,7 +77,7 @@ export default function DepartmentsScreen() {
           return currentId;
         }
 
-        return data[0]?.id ?? null;
+        return accountType === 'platform_admin' ? null : data[0]?.id ?? null;
       });
     } catch (err) {
       setError(getErrorMessage(err, 'Unable to load organizations.'));
@@ -188,7 +192,11 @@ export default function DepartmentsScreen() {
     setSubmitting(true);
 
     try {
-      const updated = await updateDepartment(editingId, validation.data);
+      const updated = await updateDepartment(
+        editingId,
+        validation.data,
+        isPlatformAdmin ? selectedOrganizationId ?? undefined : undefined,
+      );
 
       setDepartments((current) =>
         current
@@ -224,14 +232,18 @@ export default function DepartmentsScreen() {
             { borderColor: theme.border },
           ]}
         >
-          <ThemedText type="subtitle">Select Organization</ThemedText>
+          <ThemedText type="subtitle">
+            {isPlatformAdmin ? 'Select Organization' : 'Organization'}
+          </ThemedText>
 
           {loadingOrganizations ? (
             <ActivityIndicator color={theme.primary} />
           ) : organizations.length === 0 ? (
             <ThemedText themeColor="textSecondary">
-              No organizations found. Create an organization first.
+              {isPlatformAdmin ? 'No organizations found. Create an organization first.' : 'Your organization could not be loaded. Sign in again and retry.'}
             </ThemedText>
+          ) : !isPlatformAdmin ? (
+            <ThemedText>{selectedOrganization?.name ?? organizations[0].name}</ThemedText>
           ) : (
             <>
               <Pressable
@@ -346,12 +358,12 @@ export default function DepartmentsScreen() {
 
           <Pressable
             accessibilityRole="button"
-            disabled={submitting || loadingOrganizations}
+            disabled={submitting || loadingOrganizations || selectedOrganizationId === null}
             onPress={handleSubmit}
             style={[
               styles.primaryButton,
               { backgroundColor: theme.primary },
-              submitting && styles.disabled,
+              (submitting || selectedOrganizationId === null) && styles.disabled,
             ]}
           >
             {submitting ? (

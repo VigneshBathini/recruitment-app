@@ -12,15 +12,12 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { createUser } from '@/services/user.service';
+import { getAccountType } from '@/services/token.service';
+import { getManagedOrganizations, type Organization } from '@/services/organizations';
 import axios from "axios";
 import { useTheme } from '@/hooks/use-theme';
-
-const API_URL =
-  process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:5000/api";
-
-const ORGANIZATION_ID = 1;
 
 type Role = {
   id: number;
@@ -157,6 +154,8 @@ function CustomDropdown({
 }
 
 export default function CreateUserScreen() {
+  const params = useLocalSearchParams<{ organizationId?: string }>();
+  const routeOrganizationId = Number(params.organizationId);
   const theme = useTheme();
   const { width } = useWindowDimensions();
 
@@ -175,6 +174,9 @@ export default function CreateUserScreen() {
   };
 
   const [roles, setRoles] = useState<Role[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState<number | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
 
   const [roleId, setRoleId] = useState<number | null>(null);
@@ -188,6 +190,7 @@ export default function CreateUserScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState("");
+  const [organizationId, setOrganizationId] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -196,26 +199,29 @@ export default function CreateUserScreen() {
       try {
         setLoadError("");
 
-        const [rolesResponse, departmentsResponse] = await Promise.all([
-  api.get<{ success: boolean; data: Role[] }>("/roles"),
-  fetch(`${API_URL}/departments/${ORGANIZATION_ID}`),
-]);
-
-if (!departmentsResponse.ok) {
-  throw new Error("Unable to load departments.");
-}
-
-const rolesResult = rolesResponse.data;
-const departmentsResult = await departmentsResponse.json();
-
-if (!rolesResult.success || !departmentsResult.success) {
-  throw new Error("Unable to load roles or departments.");
-}
-
-if (!cancelled) {
-  setRoles(rolesResult.data);
-  setDepartments(departmentsResult.data);
-}
+        const [managedOrganizations, rolesResponse, accountType] = await Promise.all([
+          getManagedOrganizations(),
+          api.get<{ success: boolean; data: Role[] }>("/roles"),
+          getAccountType(),
+        ]);
+        if (managedOrganizations.length === 0) throw new Error('Create an organization before adding users.');
+        const platformAdmin = accountType === 'platform_admin';
+        const routeOrganizationExists = managedOrganizations.some((org) => org.id === routeOrganizationId);
+        const selectedOrgId = platformAdmin
+          ? (routeOrganizationExists ? routeOrganizationId : null)
+          : managedOrganizations[0].id;
+        const departmentsResponse = selectedOrgId === null
+          ? null
+          : await api.get<{ success: boolean; data: Department[] }>(`/departments/${selectedOrgId}`);
+        if (!rolesResponse.data.success || (departmentsResponse && !departmentsResponse.data.success)) throw new Error("Unable to load roles or departments.");
+        if (!cancelled) {
+          setOrganizationId(selectedOrgId);
+          setOrganizations(managedOrganizations);
+          setSelectedOrganizationId(selectedOrgId);
+          setIsPlatformAdmin(platformAdmin);
+          setRoles(rolesResponse.data.data);
+          setDepartments(departmentsResponse?.data.data ?? []);
+        }
       } catch (error) {
         if (!cancelled) {
           setLoadError(
@@ -236,7 +242,11 @@ if (!cancelled) {
     };
   }, []);
 
- async function handleCreateUser() {
+  async function handleCreateUser() {
+  if (organizationId === null) {
+    Alert.alert('Select organization', 'Choose an organization before creating a user.');
+    return;
+  }
   if (!firstName.trim()) {
     Alert.alert('Validation', 'Please enter the first name.');
     return;
@@ -269,7 +279,7 @@ if (!cancelled) {
 
   try {
     await createUser({
-      organization_id: ORGANIZATION_ID,
+      organization_id: organizationId ?? 0,
       role_id: roleId,
       department_id: departmentId,
       first_name: firstName.trim(),
@@ -300,7 +310,22 @@ if (!cancelled) {
   } finally {
     setSaving(false);
   }
-}
+  }
+
+  async function handleSelectOrganization(organizationId: number | null) {
+    setSelectedOrganizationId(organizationId);
+    setOrganizationId(organizationId);
+    setDepartmentId(null);
+    setDepartments([]);
+    if (organizationId === null) return;
+    try {
+      setLoadError('');
+      const response = await api.get<{ success: boolean; data: Department[] }>(`/departments/${organizationId}`);
+      setDepartments(response.data.data);
+    } catch (error) {
+      setLoadError(axios.isAxiosError(error) ? error.response?.data?.message ?? 'Unable to load departments.' : 'Unable to load departments.');
+    }
+  }
 
   if (loading) {
     return (
@@ -445,6 +470,17 @@ if (!cancelled) {
         ]}
       />
 
+      {isPlatformAdmin && (
+        <CustomDropdown
+          label="Organization *"
+          placeholder="Select an organization"
+          options={organizations.map((organization) => ({ label: organization.name, value: organization.id }))}
+          value={selectedOrganizationId}
+          onChange={(value) => void handleSelectOrganization(value)}
+          colors={colors}
+        />
+      )}
+
       <CustomDropdown
   label="Role *"
   placeholder="Select a role"
@@ -476,11 +512,11 @@ if (!cancelled) {
 
       <Pressable
         onPress={handleCreateUser}
-        disabled={saving || !!loadError}
+        disabled={saving || !!loadError || organizationId === null}
         style={({ pressed }) => [
           styles.button,
           { backgroundColor: colors.primary },
-          (pressed || saving || !!loadError) &&
+          (pressed || saving || !!loadError || organizationId === null) &&
             styles.buttonDisabled,
         ]}
       >

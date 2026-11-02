@@ -20,13 +20,9 @@ import {
   type User,
 } from '@/services/user.service';
 import api from "@/services/api";
+import { getCurrentOrganizationUser } from '@/services/auth.service';
+import { getAccountType } from '@/services/token.service';
 import { useTheme } from '@/hooks/use-theme';
-
-const API_URL =
-  process.env.EXPO_PUBLIC_API_URL ??
-  'http://192.168.1.128:5000/api';
-
-const ORGANIZATION_ID = 1;
 
 type Role = {
   id: number;
@@ -184,7 +180,7 @@ function getErrorMessage(
 }
 
 export default function EditUserScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, organizationId: organizationIdParam } = useLocalSearchParams<{ id: string; organizationId?: string }>();
   const theme = useTheme();
   const { width } = useWindowDimensions();
 
@@ -217,6 +213,8 @@ export default function EditUserScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [organizationId, setOrganizationId] = useState<number | null>(null);
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -236,22 +234,24 @@ export default function EditUserScreen() {
           throw new Error('Invalid user ID.');
         }
 
+        const accountType = await getAccountType();
+        const organization = accountType === 'platform_admin'
+          ? { id: Number(organizationIdParam) }
+          : await getCurrentOrganizationUser();
+        if (!Number.isSafeInteger(organization.id) || organization.id <= 0) {
+          throw new Error('Select an organization before editing a user.');
+        }
         const [users, rolesResponse, departmentsResponse] = await Promise.all([
-  getUsers(ORGANIZATION_ID),
-  api.get<{ success: boolean; data: Role[] }>("/roles"),
-  fetch(`${API_URL}/departments/${ORGANIZATION_ID}`),
-]);
+          getUsers(organization.id),
+          api.get<{ success: boolean; data: Role[] }>("/roles"),
+          api.get<{ success: boolean; data: Department[] }>(`/departments/${organization.id}`),
+        ]);
+        const rolesResult = rolesResponse.data;
+        const departmentsResult = departmentsResponse.data;
 
-if (!departmentsResponse.ok) {
-  throw new Error("Unable to load departments.");
-}
-
-const rolesResult = rolesResponse.data;
-const departmentsResult = await departmentsResponse.json();
-
-if (!rolesResult.success || !departmentsResult.success) {
-  throw new Error("Unable to load roles or departments.");
-}
+        if (!rolesResult.success || !departmentsResult.success) {
+          throw new Error("Unable to load roles or departments.");
+        }
         const selectedUser = users.find(
           item => item.id === userId,
         );
@@ -265,6 +265,8 @@ if (!rolesResult.success || !departmentsResult.success) {
         if (cancelled) return;
 
         setUser(selectedUser);
+        setOrganizationId(organization.id);
+        setIsPlatformAdmin(accountType === 'platform_admin');
         setRoles(rolesResult.data);
         setDepartments(departmentsResult.data);
 
@@ -294,7 +296,7 @@ if (!rolesResult.success || !departmentsResult.success) {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, organizationIdParam]);
 
   async function handleUpdateUser() {
     if (!user) return;
@@ -331,7 +333,7 @@ if (!rolesResult.success || !departmentsResult.success) {
         email: email.trim().toLowerCase(),
         role_id: roleId,
         department_id: departmentId,
-      });
+      }, isPlatformAdmin ? organizationId ?? undefined : undefined);
 
       Alert.alert(
         'Success',

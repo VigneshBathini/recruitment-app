@@ -1,7 +1,9 @@
 
 import {
   createOrganization as createOrganizationRepository,
-  getAllOrganizations
+  getAllOrganizations,
+  updateOrganization as updateOrganizationRepository,
+  setOrganizationStatus as setOrganizationStatusRepository,
 } from "../repositories/organization.repository.js";
 
 export async function createOrganization(data) {
@@ -17,4 +19,16 @@ export async function createOrganization(data) {
 
 export async function getOrganizations(){
     return await getAllOrganizations();
+}
+
+export async function updateOrganization(id, data) {
+  return updateOrganizationRepository(id, {
+    name: data.name.trim(),
+    slug: data.slug.trim().toLowerCase(),
+    email: data.email?.trim().toLowerCase(),
+  });
+}
+
+export async function setOrganizationStatus(id, isActive) {
+  return setOrganizationStatusRepository(id, isActive);
 }

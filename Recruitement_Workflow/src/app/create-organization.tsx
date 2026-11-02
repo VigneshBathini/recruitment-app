@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useRef, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
   Pressable,
@@ -17,7 +18,7 @@ import {
   createOrganizationSchema,
   type CreateOrganizationInput,
 } from '@/schemas/organization';
-import { createOrganization } from '@/services/organizations';
+import { createOrganization, updateOrganization } from '@/services/organizations';
 
 type FormField = keyof CreateOrganizationInput;
 type FormValues = Record<FormField, string>;
@@ -30,8 +31,11 @@ const initialValues: FormValues = {
 };
 
 export default function HomeScreen() {
+  const params = useLocalSearchParams<{ id?: string; name?: string; slug?: string; email?: string }>();
+  const organizationId = Number(params.id);
+  const isEditing = Number.isSafeInteger(organizationId) && organizationId > 0;
   const theme = useTheme();
-  const [values, setValues] = useState(initialValues);
+  const [values, setValues] = useState<FormValues>(() => isEditing ? { name: params.name ?? '', slug: params.slug ?? '', email: params.email ?? '' } : initialValues);
   const [errors, setErrors] = useState<FormErrors>({});
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string }>();
   const [submitting, setSubmitting] = useState(false);
@@ -76,10 +80,14 @@ export default function HomeScreen() {
     setFeedback(undefined);
 
     try {
-      const organization = await createOrganization(validation.data);
+      const organization = isEditing
+        ? await updateOrganization(organizationId, validation.data)
+        : await createOrganization(validation.data);
       setFeedback({
         type: 'success',
-        message: `${organization.name} was created successfully.`,
+        message: isEditing
+          ? `${organization.name} was updated successfully.`
+          : `${organization.name} was created successfully.`,
       });
       setValues(initialValues);
       setErrors({});
@@ -108,15 +116,14 @@ export default function HomeScreen() {
                 type="smallBold"
                 style={{ color: theme.primary }}
               >
-                ORGANIZATION SETUP
+              {isEditing ? 'ORGANIZATION MANAGEMENT' : 'ORGANIZATION SETUP'}
               </ThemedText>
             </View>
             <ThemedText type="subtitle" style={styles.title}>
-              Create your organization
+              {isEditing ? 'Edit organization' : 'Create your organization'}
             </ThemedText>
             <ThemedText themeColor="textSecondary" style={styles.description}>
-              Set up your organization workspace. You can add your team and hiring
-              requirements next.
+              {isEditing ? 'Update the organization name, slug, or contact email.' : 'Set up an organization workspace.'}
             </ThemedText>
           </View>
 
@@ -195,7 +202,7 @@ export default function HomeScreen() {
                 <ActivityIndicator color={theme.primaryText} />
               ) : (
                 <ThemedText style={{ color: theme.primaryText, fontWeight: '700' }}>
-                  Create organization
+                  {isEditing ? 'Save changes' : 'Create organization'}
                 </ThemedText>
               )}
             </Pressable>

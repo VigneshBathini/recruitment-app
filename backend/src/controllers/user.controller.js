@@ -17,6 +17,17 @@ const userStatusSchema = z.object({
   is_active: z.boolean(),
 });
 
+function getRequestedOrganizationId(req, value) {
+  if (req.user.account_type === "organization_user") {
+    if (value != null && Number(value) !== req.user.organization_id) return null;
+    return req.user.organization_id;
+  }
+  const organizationId = Number(value);
+  return Number.isSafeInteger(organizationId) && organizationId > 0
+    ? organizationId
+    : null;
+}
+
 export async function createUserController(req, res, next) {
   const validation = createUserSchema.safeParse(req.body);
 
@@ -29,10 +40,11 @@ export async function createUserController(req, res, next) {
   }
 
   try {
-    // Always use the organization from the verified JWT.
-    const organizationId = req.user.organization_id;
+    const organizationId = getRequestedOrganizationId(req, validation.data.organization_id);
+    if (!organizationId) {
+      return res.status(req.user.account_type === "organization_user" ? 403 : 400).json({ success: false, message: "A valid organization scope is required" });
+    }
 
-    // Never trust organization_id supplied by the frontend.
     const user = await createUser({
       ...validation.data,
       organization_id: organizationId,
@@ -69,8 +81,10 @@ export async function createUserController(req, res, next) {
 
 export async function getUsersController(req, res, next) {
   try {
-    // Ignore the organization ID supplied in the URL.
-    const organizationId = req.user.organization_id;
+    const organizationId = getRequestedOrganizationId(req, req.params.organizationId);
+    if (!organizationId) {
+      return res.status(403).json({ success: false, message: "You cannot access another organization's users" });
+    }
 
     const users = await getUsers(organizationId);
 
@@ -111,8 +125,10 @@ export async function updateUserController(req, res, next) {
       });
     }
 
-    // Scope the update to the authenticated user's organization.
-    const organizationId = req.user.organization_id;
+    const organizationId = getRequestedOrganizationId(req, req.query.organizationId);
+    if (!organizationId) {
+      return res.status(req.user.account_type === "organization_user" ? 403 : 400).json({ success: false, message: "A valid organization scope is required" });
+    }
 
     const user = await updateUserService(
       id,
@@ -162,8 +178,10 @@ export async function updateUserStatusController(req, res, next) {
       });
     }
 
-    // Scope activation/deactivation to the authenticated organization.
-    const organizationId = req.user.organization_id;
+    const organizationId = getRequestedOrganizationId(req, req.query.organizationId);
+    if (!organizationId) {
+      return res.status(req.user.account_type === "organization_user" ? 403 : 400).json({ success: false, message: "A valid organization scope is required" });
+    }
 
     const user = await setUserStatusService(
       id,

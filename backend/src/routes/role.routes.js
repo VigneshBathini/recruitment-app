@@ -1,13 +1,13 @@
 
 import { Router } from "express";
 import { getRolesController } from "../controllers/role.controller.js";
-import { authenticateToken } from "../middleware/auth.middleware.js";
+import { authenticateManagementToken } from "../middleware/authenticateManagementToken.middleware.js";
 
 
 const router = Router();
 
 // Require a valid login before returning roles.
-router.use(authenticateToken);
+router.use(authenticateManagementToken);
 
 router.get("/", getRolesController);
 

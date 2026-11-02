@@ -48,9 +48,10 @@ export async function createDepartment(
 export async function updateDepartment(
   id: number,
   input: UpdateDepartmentInput,
+  organizationId?: number,
 ): Promise<Department> {
   const response = await api.put<DepartmentResponse>(
-    `/departments/${id}`,
+    `/departments/${id}${organizationId ? `?organizationId=${organizationId}` : ''}`,
     input,
   );
 
