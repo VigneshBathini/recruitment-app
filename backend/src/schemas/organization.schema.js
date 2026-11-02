@@ -1,7 +1,7 @@
 
 import { z } from "zod";
 
-export const createOrganizationSchema = z.object({
+const organizationFields = {
   name: z
     .string()
     .trim()
@@ -24,4 +24,16 @@ export const createOrganizationSchema = z.object({
     .email("Enter a valid email address")
     .max(255)
     .optional(),
+};
+
+export const createOrganizationSchema = z.object({
+  ...organizationFields,
+  initial_admin: z.object({
+    first_name: z.string().trim().min(1).max(100),
+    last_name: z.string().trim().max(100).optional(),
+    email: z.string().trim().email().max(255),
+    password: z.string().min(8).max(128),
+  }),
 });
+
+export const updateOrganizationSchema = z.object(organizationFields);

@@ -16,11 +16,13 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import {
   createOrganizationSchema,
+  organizationSchema,
   type CreateOrganizationInput,
+  type UpdateOrganizationInput,
 } from '@/schemas/organization';
 import { createOrganization, updateOrganization } from '@/services/organizations';
 
-type FormField = keyof CreateOrganizationInput;
+type FormField = 'name' | 'slug' | 'email' | 'admin_first_name' | 'admin_last_name' | 'admin_email' | 'admin_password';
 type FormValues = Record<FormField, string>;
 type FormErrors = Partial<Record<FormField, string>>;
 
@@ -28,6 +30,10 @@ const initialValues: FormValues = {
   name: '',
   slug: '',
   email: '',
+  admin_first_name: '',
+  admin_last_name: '',
+  admin_email: '',
+  admin_password: '',
 };
 
 export default function HomeScreen() {
@@ -35,7 +41,7 @@ export default function HomeScreen() {
   const organizationId = Number(params.id);
   const isEditing = Number.isSafeInteger(organizationId) && organizationId > 0;
   const theme = useTheme();
-  const [values, setValues] = useState<FormValues>(() => isEditing ? { name: params.name ?? '', slug: params.slug ?? '', email: params.email ?? '' } : initialValues);
+  const [values, setValues] = useState<FormValues>(() => isEditing ? { ...initialValues, name: params.name ?? '', slug: params.slug ?? '', email: params.email ?? '' } : initialValues);
   const [errors, setErrors] = useState<FormErrors>({});
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string }>();
   const [submitting, setSubmitting] = useState(false);
@@ -52,22 +58,36 @@ export default function HomeScreen() {
       return;
     }
 
-    const payload = {
+    const organizationPayload = {
       name: values.name,
       slug: values.slug,
       email: values.email.trim() || undefined,
     };
-    const validation = createOrganizationSchema.safeParse(payload);
+    const validation = isEditing
+      ? organizationSchema.safeParse(organizationPayload)
+      : createOrganizationSchema.safeParse({
+          ...organizationPayload,
+          initial_admin: {
+            first_name: values.admin_first_name,
+            last_name: values.admin_last_name || undefined,
+            email: values.admin_email,
+            password: values.admin_password,
+          },
+        });
 
     if (!validation.success) {
       const fieldErrors: FormErrors = {};
       for (const issue of validation.error.issues) {
         const field = issue.path[0];
         if (
-          (field === 'name' || field === 'slug' || field === 'email') &&
-          !fieldErrors[field]
+          typeof field === 'string' && !fieldErrors[
+            field === 'initial_admin' ? 'admin_email' : field as FormField
+          ]
         ) {
-          fieldErrors[field] = issue.message;
+          const mappedField = field === 'initial_admin'
+            ? `admin_${String(issue.path[1] ?? 'email')}` as FormField
+            : field as FormField;
+          fieldErrors[mappedField] = issue.message;
         }
       }
       setErrors(fieldErrors);
@@ -81,13 +101,13 @@ export default function HomeScreen() {
 
     try {
       const organization = isEditing
-        ? await updateOrganization(organizationId, validation.data)
-        : await createOrganization(validation.data);
+        ? await updateOrganization(organizationId, validation.data as UpdateOrganizationInput)
+        : await createOrganization(validation.data as CreateOrganizationInput);
       setFeedback({
         type: 'success',
         message: isEditing
           ? `${organization.name} was updated successfully.`
-          : `${organization.name} was created successfully.`,
+          : `${organization.name} and its initial Organization Admin were created successfully.`,
       });
       setValues(initialValues);
       setErrors({});
@@ -143,6 +163,14 @@ export default function HomeScreen() {
               autoCapitalize="words"
               editable={!submitting}
             />
+
+            {!isEditing && <>
+              <ThemedText type="smallBold" style={{ marginTop: Spacing.three }}>Initial Organization Admin</ThemedText>
+              <FormInput label="Admin first name *" value={values.admin_first_name} onChangeText={(value) => updateField('admin_first_name', value)} error={errors.admin_first_name} placeholder="First name" autoCapitalize="words" editable={!submitting} />
+              <FormInput label="Admin last name" value={values.admin_last_name} onChangeText={(value) => updateField('admin_last_name', value)} error={errors.admin_last_name} placeholder="Last name" autoCapitalize="words" editable={!submitting} />
+              <FormInput label="Admin email *" value={values.admin_email} onChangeText={(value) => updateField('admin_email', value)} error={errors.admin_email} placeholder="admin@example.com" autoCapitalize="none" autoCorrect={false} keyboardType="email-address" editable={!submitting} />
+              <FormInput label="Temporary password *" value={values.admin_password} onChangeText={(value) => updateField('admin_password', value)} error={errors.admin_password} placeholder="At least 8 characters" autoCapitalize="none" autoCorrect={false} secureTextEntry editable={!submitting} />
+            </>}
             <FormInput
               label="Unique slug"
               value={values.slug}
@@ -224,6 +252,7 @@ type FormInputProps = {
   autoCorrect?: boolean;
   keyboardType?: 'default' | 'email-address';
   editable: boolean;
+  secureTextEntry?: boolean;
 };
 
 function FormInput({
@@ -237,6 +266,7 @@ function FormInput({
   autoCorrect,
   keyboardType = 'default',
   editable,
+  secureTextEntry,
 }: FormInputProps) {
   const theme = useTheme();
 
@@ -253,6 +283,7 @@ function FormInput({
         autoCorrect={autoCorrect}
         keyboardType={keyboardType}
         editable={editable}
+        secureTextEntry={secureTextEntry}
         style={[
           styles.input,
           {

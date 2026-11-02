@@ -2,22 +2,42 @@
 import pool from "../config/database.js";
 
 export async function createOrganization(data) {
-  const [result] = await pool.execute(
-    `INSERT INTO organizations (name, slug, email)
-     VALUES (?, ?, ?)`,
-    [data.name, data.slug, data.email ?? null]
-  );
-
-  const insertId = result.insertId;
-
-  const [rows] = await pool.execute(
-    `SELECT id, name, slug, email, is_active, created_at
-     FROM organizations
-     WHERE id = ?`,
-    [insertId]
-  );
-
-  return rows[0];
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [result] = await connection.execute(
+      `INSERT INTO organizations (name, slug, email) VALUES (?, ?, ?)`,
+      [data.name, data.slug, data.email ?? null]
+    );
+    const organizationId = result.insertId;
+    const [roles] = await connection.execute(
+      `SELECT id FROM roles WHERE name = 'Organization Admin' LIMIT 1`
+    );
+    if (!roles.length) throw Object.assign(new Error("Organization Admin role is not configured"), { statusCode: 500 });
+    const roleId = roles[0].id;
+    const admin = data.initial_admin;
+    const [userResult] = await connection.execute(
+      `INSERT INTO users (organization_id, role_id, department_id, first_name, last_name, email, password_hash)
+       VALUES (?, ?, NULL, ?, ?, ?, ?)`,
+      [organizationId, roleId, admin.first_name, admin.last_name, admin.email, admin.password_hash]
+    );
+    await connection.execute(
+      `INSERT INTO organization_role_permissions (organization_id, role_id, permission_id)
+       SELECT ?, ?, id FROM permissions`,
+      [organizationId, roleId]
+    );
+    const [rows] = await connection.execute(
+      `SELECT id, name, slug, email, is_active, created_at FROM organizations WHERE id = ?`,
+      [organizationId]
+    );
+    await connection.commit();
+    return { ...rows[0], initial_admin: { id: userResult.insertId, email: admin.email } };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
 }
 
 

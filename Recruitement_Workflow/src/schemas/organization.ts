@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const createOrganizationSchema = z.object({
+const organizationFields = {
   name: z
     .string()
     .trim()
@@ -21,6 +21,17 @@ export const createOrganizationSchema = z.object({
     .email('Enter a valid email address')
     .max(255, 'Email cannot exceed 255 characters')
     .optional(),
+};
+
+export const organizationSchema = z.object(organizationFields);
+export const createOrganizationSchema = organizationSchema.extend({
+  initial_admin: z.object({
+    first_name: z.string().trim().min(1, 'First name is required').max(100),
+    last_name: z.string().trim().max(100).optional(),
+    email: z.string().trim().email('Enter a valid admin email').max(255),
+    password: z.string().min(8, 'Password must contain at least 8 characters').max(128),
+  }),
 });
 
 export type CreateOrganizationInput = z.infer<typeof createOrganizationSchema>;
+export type UpdateOrganizationInput = z.infer<typeof organizationSchema>;

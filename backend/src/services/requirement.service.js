@@ -3,6 +3,8 @@ import {
   createRequirement,
   getRequirementById,
   getRequirementsByOrganization,
+  getAllRequirements,
+  getRequirementByIdForPlatform,
   departmentBelongsToOrganization,
   updateRequirement,
 } from "../repositories/requirement.repository.js";
@@ -86,11 +88,14 @@ export async function createRequirementService(data, user) {
 }
 
 export async function getRequirementsService(user) {
+  if (user.account_type === "platform_admin") return getAllRequirements();
   return getRequirementsByOrganization(user.organization_id);
 }
 
 export async function getRequirementService(id, user) {
-  const requirement = await getRequirementById(
+  const requirement = user.account_type === "platform_admin"
+    ? await getRequirementByIdForPlatform(id)
+    : await getRequirementById(
     id,
     user.organization_id
   );

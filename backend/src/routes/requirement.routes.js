@@ -8,38 +8,38 @@ import {
   updateRequirementController,
 } from "../controllers/requirement.controller.js";
 
-import { authenticateToken } from "../middleware/auth.middleware.js";
-import { authorizePermission } from "../middleware/authorizePermission.middleware.js";
+import { authenticateManagementToken } from "../middleware/authenticateManagementToken.middleware.js";
+import { authorizeManagementPermission } from "../middleware/authorizeManagementPermission.middleware.js";
 
 const router = Router();
 
 // All requirement routes require authentication
-router.use(authenticateToken);
+router.use(authenticateManagementToken);
 
 // View requirements
 router.get(
   "/",
-  authorizePermission("requirement.view"),
+  authorizeManagementPermission("requirement.view"),
   getRequirementsController
 );
 
 router.get(
   "/:id",
-  authorizePermission("requirement.view"),
+  authorizeManagementPermission("requirement.view"),
   getRequirementController
 );
 
 // Create a requirement
 router.post(
   "/",
-  authorizePermission("requirement.manage"),
+  authorizeManagementPermission("requirement.manage"),
   createRequirementController
 );
 
 // Update a draft requirement
 router.put(
   "/:id",
-  authorizePermission("requirement.manage"),
+  authorizeManagementPermission("requirement.manage"),
   updateRequirementController
 );
 

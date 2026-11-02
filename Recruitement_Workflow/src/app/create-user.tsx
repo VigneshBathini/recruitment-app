@@ -199,9 +199,8 @@ export default function CreateUserScreen() {
       try {
         setLoadError("");
 
-        const [managedOrganizations, rolesResponse, accountType] = await Promise.all([
+        const [managedOrganizations, accountType] = await Promise.all([
           getManagedOrganizations(),
-          api.get<{ success: boolean; data: Role[] }>("/roles"),
           getAccountType(),
         ]);
         if (managedOrganizations.length === 0) throw new Error('Create an organization before adding users.');
@@ -210,16 +209,19 @@ export default function CreateUserScreen() {
         const selectedOrgId = platformAdmin
           ? (routeOrganizationExists ? routeOrganizationId : null)
           : managedOrganizations[0].id;
-        const departmentsResponse = selectedOrgId === null
-          ? null
-          : await api.get<{ success: boolean; data: Department[] }>(`/departments/${selectedOrgId}`);
-        if (!rolesResponse.data.success || (departmentsResponse && !departmentsResponse.data.success)) throw new Error("Unable to load roles or departments.");
+        const [rolesResponse, departmentsResponse] = selectedOrgId === null
+          ? [null, null]
+          : await Promise.all([
+              api.get<{ success: boolean; data: Role[] }>(`/roles?organizationId=${selectedOrgId}`),
+              api.get<{ success: boolean; data: Department[] }>(`/departments/${selectedOrgId}`),
+            ]);
+        if (selectedOrgId !== null && (!rolesResponse?.data.success || !departmentsResponse?.data.success)) throw new Error("Unable to load roles or departments.");
         if (!cancelled) {
           setOrganizationId(selectedOrgId);
           setOrganizations(managedOrganizations);
           setSelectedOrganizationId(selectedOrgId);
           setIsPlatformAdmin(platformAdmin);
-          setRoles(rolesResponse.data.data);
+          setRoles(rolesResponse?.data.data ?? []);
           setDepartments(departmentsResponse?.data.data ?? []);
         }
       } catch (error) {
@@ -320,8 +322,12 @@ export default function CreateUserScreen() {
     if (organizationId === null) return;
     try {
       setLoadError('');
-      const response = await api.get<{ success: boolean; data: Department[] }>(`/departments/${organizationId}`);
-      setDepartments(response.data.data);
+      const [rolesResponse, departmentsResponse] = await Promise.all([
+        api.get<{ success: boolean; data: Role[] }>(`/roles?organizationId=${organizationId}`),
+        api.get<{ success: boolean; data: Department[] }>(`/departments/${organizationId}`),
+      ]);
+      setRoles(rolesResponse.data.data);
+      setDepartments(departmentsResponse.data.data);
     } catch (error) {
       setLoadError(axios.isAxiosError(error) ? error.response?.data?.message ?? 'Unable to load departments.' : 'Unable to load departments.');
     }

@@ -1,5 +1,5 @@
 
-import { createOrganizationSchema } from "../schemas/organization.schema.js";
+import { createOrganizationSchema, updateOrganizationSchema } from "../schemas/organization.schema.js";
 import {
   createOrganization,
   getOrganizations,
@@ -29,9 +29,14 @@ export async function createOrganizationController(req, res) {
   } catch (error) {
     console.error("Create organization failed:", error);
 
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ success: false, message: "Organization name or slug, or admin email, is already in use" });
+    }
+    if (error.statusCode) return res.status(error.statusCode).json({ success: false, message: error.message });
+
     return res.status(500).json({
       success: false,
-      message: "Failed to create organization",
+      message: "Failed to create organization and initial admin",
     });
   }
 }
@@ -41,7 +46,7 @@ export async function updateOrganizationController(req, res, next) {
   if (!Number.isSafeInteger(id) || id <= 0) {
     return res.status(400).json({ success: false, message: "Invalid organization ID" });
   }
-  const validation = createOrganizationSchema.safeParse(req.body);
+  const validation = updateOrganizationSchema.safeParse(req.body);
   if (!validation.success) {
     return res.status(400).json({ success: false, message: "Validation failed", errors: validation.error.flatten() });
   }

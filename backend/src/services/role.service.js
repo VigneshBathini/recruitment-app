@@ -1,6 +1,6 @@
 
-import { getAllRoles } from "../repositories/role.repository.js";
+import { getRolesByOrganization } from "../repositories/role.repository.js";
 
-export async function getRoles() {
-  return getAllRoles();
+export async function getRoles(organizationId) {
+  return getRolesByOrganization(organizationId);
 }

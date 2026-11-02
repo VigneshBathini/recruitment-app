@@ -1,7 +1,7 @@
 
 import api from "@/services/api";
 
-import type { CreateOrganizationInput } from "@/schemas/organization";
+import type { CreateOrganizationInput, UpdateOrganizationInput } from "@/schemas/organization";
 import { getAccountType, getOrganizationContext } from "@/services/token.service";
 import { getCurrentOrganizationUser } from "@/services/auth.service";
 
@@ -59,7 +59,7 @@ export async function getManagedOrganizations(): Promise<Organization[]> {
   }];
 }
 
-export async function updateOrganization(id: number, input: CreateOrganizationInput): Promise<Organization> {
+export async function updateOrganization(id: number, input: UpdateOrganizationInput): Promise<Organization> {
   const response = await api.put<{ success: true; data: Organization }>(`/organizations/${id}`, input);
   return response.data.data;
 }

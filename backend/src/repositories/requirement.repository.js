@@ -98,6 +98,41 @@ export async function getRequirementsByOrganization(organizationId) {
   return rows;
 }
 
+export async function getAllRequirements() {
+  const [rows] = await pool.execute(
+    `SELECT jr.id, jr.organization_id, o.name AS organization_name,
+       jr.department_id, d.name AS department_name, jr.created_by,
+       CONCAT(u.first_name, ' ', COALESCE(u.last_name, '')) AS created_by_name,
+       jr.title, jr.openings, jr.experience_min_years, jr.experience_max_years,
+       jr.location, jr.employment_type, jr.description, jr.status,
+       jr.created_at, jr.updated_at
+     FROM job_requirements jr
+     INNER JOIN organizations o ON o.id = jr.organization_id
+     LEFT JOIN departments d ON d.id = jr.department_id
+     INNER JOIN users u ON u.id = jr.created_by
+     ORDER BY jr.created_at DESC`
+  );
+  return rows;
+}
+
+export async function getRequirementByIdForPlatform(id) {
+  const [rows] = await pool.execute(
+    `SELECT jr.id, jr.organization_id, o.name AS organization_name,
+       jr.department_id, d.name AS department_name, jr.created_by,
+       CONCAT(u.first_name, ' ', COALESCE(u.last_name, '')) AS created_by_name,
+       jr.title, jr.openings, jr.experience_min_years, jr.experience_max_years,
+       jr.location, jr.employment_type, jr.description, jr.status,
+       jr.created_at, jr.updated_at
+     FROM job_requirements jr
+     INNER JOIN organizations o ON o.id = jr.organization_id
+     LEFT JOIN departments d ON d.id = jr.department_id
+     INNER JOIN users u ON u.id = jr.created_by
+     WHERE jr.id = ? LIMIT 1`,
+    [id]
+  );
+  return rows[0] ?? null;
+}
+
 // Check whether a department belongs to an organization
 export async function departmentBelongsToOrganization(
   departmentId,

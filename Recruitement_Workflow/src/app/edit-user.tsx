@@ -243,7 +243,7 @@ export default function EditUserScreen() {
         }
         const [users, rolesResponse, departmentsResponse] = await Promise.all([
           getUsers(organization.id),
-          api.get<{ success: boolean; data: Role[] }>("/roles"),
+          api.get<{ success: boolean; data: Role[] }>(`/roles?organizationId=${organization.id}`),
           api.get<{ success: boolean; data: Department[] }>(`/departments/${organization.id}`),
         ]);
         const rolesResult = rolesResponse.data;
