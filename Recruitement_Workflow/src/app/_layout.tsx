@@ -7,15 +7,18 @@ import {
   Stack,
   ThemeProvider,
   useRouter,
+  usePathname,
 } from 'expo-router';
 
 import { Colors } from '@/constants/theme';
 import { getToken, getAccountType } from '@/services/token.service';
+import { getCurrentOrganizationUser, logoutUser } from '@/services/auth.service';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme === 'dark' ? 'dark' : 'light'];
   const router = useRouter();
+  const pathname = usePathname();
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
@@ -55,6 +58,56 @@ export default function RootLayout() {
       mounted = false;
     };
   }, [router]);
+
+  useEffect(() => {
+    if (!authChecked) return;
+    let active = true;
+
+    async function validateRouteAccess() {
+      try {
+        const [token, accountType] = await Promise.all([getToken(), getAccountType()]);
+        if (!active) return;
+
+        if (!token || !accountType) {
+          if (pathname !== '/login') router.replace('/login');
+          return;
+        }
+
+        if (pathname === '/login') {
+          router.replace(accountType === 'platform_admin' ? '/platform-admin' : '/');
+          return;
+        }
+
+        const platformOnlyRoutes = ['/platform-admin', '/organizations', '/create-organization'];
+        const organizationAdminRoutes = ['/', '/departments', '/users', '/create-user', '/edit-user', '/role-permissions'];
+
+        if (accountType === 'platform_admin') {
+          if (pathname === '/' || pathname === '/explore' || pathname === '/role-permissions') {
+            router.replace('/platform-admin');
+          }
+          return;
+        }
+
+        if (platformOnlyRoutes.includes(pathname)) {
+          router.replace('/');
+          return;
+        }
+
+        if (organizationAdminRoutes.includes(pathname)) {
+          const organization = await getCurrentOrganizationUser();
+          if (organization.role_name !== 'Organization Admin') {
+            router.replace('/explore');
+          }
+        }
+      } catch {
+        void logoutUser();
+        if (active) router.replace('/login');
+      }
+    }
+
+    void validateRouteAccess();
+    return () => { active = false; };
+  }, [authChecked, pathname, router]);
 
   if (!authChecked) {
     return (
