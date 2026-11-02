@@ -7,7 +7,14 @@ import {
 
 function parsePositiveId(value) {
   const id = Number(value);
-  return Number.isSafeInteger(id) && id > 0 ? id : null;
+
+  return Number.isSafeInteger(id) && id > 0
+    ? id
+    : null;
+}
+
+function getOrganizationId(req) {
+  return parsePositiveId(req.user?.organization_id);
 }
 
 export async function getPermissionsController(req, res, next) {
@@ -25,7 +32,15 @@ export async function getPermissionsController(req, res, next) {
 
 export async function getRolePermissionsController(req, res, next) {
   try {
+    const organizationId = getOrganizationId(req);
     const roleId = parsePositiveId(req.params.roleId);
+
+    if (!organizationId) {
+      return res.status(403).json({
+        success: false,
+        message: "Organization context is required",
+      });
+    }
 
     if (!roleId) {
       return res.status(400).json({
@@ -34,7 +49,10 @@ export async function getRolePermissionsController(req, res, next) {
       });
     }
 
-    const permissions = await getRolePermissions(roleId);
+    const permissions = await getRolePermissions(
+      organizationId,
+      roleId
+    );
 
     return res.status(200).json({
       success: true,
@@ -47,8 +65,16 @@ export async function getRolePermissionsController(req, res, next) {
 
 export async function updateRolePermissionsController(req, res, next) {
   try {
+    const organizationId = getOrganizationId(req);
     const roleId = parsePositiveId(req.params.roleId);
     const { permissionIds } = req.body;
+
+    if (!organizationId) {
+      return res.status(403).json({
+        success: false,
+        message: "Organization context is required",
+      });
+    }
 
     if (!roleId) {
       return res.status(400).json({
@@ -72,6 +98,7 @@ export async function updateRolePermissionsController(req, res, next) {
     }
 
     const permissions = await updateRolePermissions(
+      organizationId,
       roleId,
       permissionIds
     );

@@ -9,10 +9,24 @@ export async function getPermissions() {
   return getAllPermissions();
 }
 
-export async function getRolePermissions(roleId) {
-  return getPermissionsByRoleId(roleId);
+export async function getRolePermissions(
+  organizationId,
+  roleId
+) {
+  return getPermissionsByRoleId(
+    organizationId,
+    roleId
+  );
 }
 
-export async function updateRolePermissions(roleId, permissionIds) {
-  return replaceRolePermissions(roleId, permissionIds);
+export async function updateRolePermissions(
+  organizationId,
+  roleId,
+  permissionIds
+) {
+  return replaceRolePermissions(
+    organizationId,
+    roleId,
+    permissionIds
+  );
 }

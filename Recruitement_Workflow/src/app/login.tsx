@@ -17,7 +17,7 @@ import { isAxiosError } from 'axios';
 
 import { useTheme } from '@/hooks/use-theme';
 import { loginUser } from '@/services/auth.service';
-import { saveToken } from '@/services/token.service';
+import { saveToken ,  saveAccountType,} from '@/services/token.service';
 
 export default function LoginScreen() {
   const theme = useTheme();
@@ -39,13 +39,13 @@ export default function LoginScreen() {
   };
 
   async function handleLogin() {
-    if (!organizationSlug.trim() || !email.trim() || !password) {
-      Alert.alert(
-        'Validation',
-        'Please enter your organization, email, and password.',
-      );
-      return;
-    }
+   if (!email.trim() || !password) {
+  Alert.alert(
+    'Validation',
+    'Please enter your email and password.',
+  );
+  return;
+}
 
     try {
       setLoading(true);
@@ -56,10 +56,18 @@ export default function LoginScreen() {
         password,
       });
 
-      await saveToken(result.token);
+    
 
-      Alert.alert('Success', `Welcome ${result.user.first_name}!`);
-      router.replace('/');
+Alert.alert('Success', `Welcome ${result.user.first_name}!`);
+
+await saveToken(result.token);
+await saveAccountType(result.user.account_type);
+
+if (result.user.account_type === "platform_admin") {
+  router.replace("/platform-admin");
+} else {
+  router.replace("/");
+}
     } catch (error) {
       let message = 'Unable to log in. Please try again.';
 

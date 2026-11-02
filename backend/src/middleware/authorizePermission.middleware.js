@@ -1,5 +1,7 @@
 
-import { getPermissionsByRoleId } from "../repositories/permission.repository.js";
+import {
+  getPermissionsByRoleId,
+} from "../repositories/permission.repository.js";
 
 export function authorizePermission(requiredPermission) {
   return async function (req, res, next) {
@@ -10,13 +12,25 @@ export function authorizePermission(requiredPermission) {
       });
     }
 
+    const organizationId = req.user.organization_id;
+    const roleId = req.user.role_id;
+
+    if (!organizationId || !roleId) {
+      return res.status(403).json({
+        success: false,
+        message: "Organization or role context is missing",
+      });
+    }
+
     try {
       const permissions = await getPermissionsByRoleId(
-        req.user.role_id
+        organizationId,
+        roleId
       );
 
       const hasPermission = permissions.some(
-        (permission) => permission.name === requiredPermission
+        (permission) =>
+          permission.name === requiredPermission
       );
 
       if (!hasPermission) {

@@ -10,7 +10,7 @@ import {
 } from 'expo-router';
 
 import { Colors } from '@/constants/theme';
-import { getToken } from '@/services/token.service';
+import { getToken, getAccountType } from '@/services/token.service';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -24,13 +24,17 @@ export default function RootLayout() {
     async function initializeAuth() {
       try {
         const token = await getToken();
+        const accountType = await getAccountType();
 
         if (!mounted) return;
 
-        if (token) {
-          router.replace('/');
+        if (token && accountType === "platform_admin") {
+          router.replace("/platform-admin");
+        } else if (token && accountType === "organization_user") {
+          router.replace("/");
+          
         } else {
-          router.replace('/login');
+          router.replace("/login");
         }
       } catch (error) {
         console.error('Token check failed:', error);
@@ -96,6 +100,10 @@ export default function RootLayout() {
         <Stack.Screen
           name="role-permissions"
           options={{ title: 'Role & Permissions' }}
+        />
+        <Stack.Screen
+          name="platform-admin"
+          options={{ headerShown: false }}
         />
       </Stack>
     </ThemeProvider>
