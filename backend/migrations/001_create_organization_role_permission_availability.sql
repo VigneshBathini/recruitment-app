@@ -29,8 +29,9 @@ CREATE TABLE IF NOT EXISTS organization_permissions (
 ) ENGINE=InnoDB;
 
 INSERT IGNORE INTO organization_roles (organization_id, role_id)
-SELECT DISTINCT organization_id, role_id
-FROM organization_role_permissions;
+SELECT organizations.id, roles.id
+FROM organizations
+CROSS JOIN roles;
 
 INSERT IGNORE INTO organization_permissions (organization_id, permission_id)
 SELECT DISTINCT organization_id, permission_id

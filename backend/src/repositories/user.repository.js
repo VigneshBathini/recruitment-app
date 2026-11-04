@@ -208,7 +208,7 @@ export async function getRoleById(roleId) {
 
 export async function roleBelongsToOrganization(roleId, organizationId) {
   const [rows] = await pool.execute(
-    `SELECT role_id FROM organization_role_permissions
+    `SELECT role_id FROM organization_roles
      WHERE role_id = ? AND organization_id = ? LIMIT 1`,
     [roleId, organizationId]
   );

@@ -22,15 +22,17 @@ export async function getRolesByOrganization(organizationId) {
   const [rows] = await pool.execute(
     `SELECT r.id, r.name, r.description,
        COALESCE(configured.permission_count, 0) AS permission_count
-     FROM roles r
-     INNER JOIN (
+     FROM organization_roles available
+     INNER JOIN roles r ON r.id = available.role_id
+     LEFT JOIN (
        SELECT role_id, COUNT(*) AS permission_count
        FROM organization_role_permissions
        WHERE organization_id = ?
        GROUP BY role_id
-     ) configured ON configured.role_id = r.id
+     ) configured ON configured.role_id = available.role_id
+     WHERE available.organization_id = ?
      ORDER BY r.name ASC`,
-    [organizationId]
+    [organizationId, organizationId]
   );
   return rows;
 }
