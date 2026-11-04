@@ -106,6 +106,14 @@ export default function PlatformAdminScreen() {
                 <ThemedText style={styles.heroButtonText}>Create organization</ThemedText>
                 <ThemedText style={styles.heroButtonArrow}>→</ThemedText>
               </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => router.push('/role-permissions')}
+                style={({ pressed }) => [styles.rolePermissionsButton, pressed && styles.pressed]}
+              >
+                <ThemedText style={styles.rolePermissionsButtonText}>Role &amp; Permissions (view only)</ThemedText>
+                <ThemedText style={styles.rolePermissionsButtonArrow}>Open</ThemedText>
+              </Pressable>
             </View>
             {isWide && (
               <View accessibilityElementsHidden style={styles.heroArt}>
@@ -181,6 +189,13 @@ export default function PlatformAdminScreen() {
               onPress={() => router.push('/users')}
               wide={isWide}
             />
+            <ToolCard
+              title="Role & Permissions"
+              description="Choose an organization to review its configured roles and permissions. Editing is read-only for Platform Admins."
+              icon="R"
+              onPress={() => router.push('/role-permissions')}
+              wide={isWide}
+            />
           </View>
 
           <ThemedText style={[styles.footer, { color: theme.textSecondary }]}>Recruitment Workflow · Platform Administration</ThemedText>
@@ -239,6 +254,9 @@ const styles = StyleSheet.create({
   heroButton: { minHeight: 46, marginTop: 3, paddingHorizontal: 16, borderRadius: 12, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 14 },
   heroButtonText: { color: '#202642', fontSize: 13, fontWeight: '700' },
   heroButtonArrow: { color: '#4F46E5', fontSize: 18, fontWeight: '700' },
+  rolePermissionsButton: { minHeight: 46, paddingHorizontal: 16, borderRadius: 12, borderWidth: 1, borderColor: '#8D91FF', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 },
+  rolePermissionsButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  rolePermissionsButtonArrow: { color: '#D8DAFF', fontSize: 12, fontWeight: '700' },
   heroArt: { width: 280, height: 210, alignItems: 'center', justifyContent: 'center' },
   heroOrbBack: { position: 'absolute', width: 182, height: 182, borderRadius: 100, backgroundColor: '#2D365B', right: 24, top: 8 },
   heroOrbFront: { position: 'absolute', width: 116, height: 116, borderRadius: 70, backgroundColor: '#4446A2', opacity: 0.7, left: 16, bottom: 4 },

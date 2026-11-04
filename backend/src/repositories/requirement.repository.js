@@ -1,6 +1,8 @@
 
 import pool from "../config/database.js";
 
+
+
 // Create a recruitment requirement
 export async function createRequirement(data) {
   const [result] = await pool.execute(
@@ -178,6 +180,103 @@ export async function updateRequirement(id, organizationId, data) {
       id,
       organizationId,
     ]
+  );
+
+  if (result.affectedRows === 0) {
+    return null;
+  }
+
+  return getRequirementById(id, organizationId);
+}
+
+// Submit a draft requirement for approval
+export async function submitRequirement(id, organizationId) {
+  const [result] = await pool.execute(
+    `UPDATE job_requirements
+     SET status = 'PENDING_APPROVAL'
+     WHERE id = ?
+       AND organization_id = ?
+       AND status = 'DRAFT'`,
+    [id, organizationId]
+  );
+
+  if (result.affectedRows === 0) {
+    return null;
+  }
+
+  return getRequirementById(id, organizationId);
+}
+
+// Get requirements pending Hiring Manager approval
+export async function getPendingRequirements(organizationId) {
+  const [rows] = await pool.execute(
+    `SELECT
+       jr.id,
+       jr.organization_id,
+       jr.department_id,
+       d.name AS department_name,
+       jr.created_by,
+       CONCAT(u.first_name, ' ', COALESCE(u.last_name, '')) AS created_by_name,
+       jr.title,
+       jr.openings,
+       jr.experience_min_years,
+       jr.experience_max_years,
+       jr.location,
+       jr.employment_type,
+       jr.description,
+       jr.status,
+       jr.created_at,
+       jr.updated_at
+     FROM job_requirements jr
+     LEFT JOIN departments d ON d.id = jr.department_id
+     INNER JOIN users u ON u.id = jr.created_by
+     WHERE jr.organization_id = ?
+       AND jr.status = 'PENDING_APPROVAL'
+     ORDER BY jr.created_at ASC`,
+    [organizationId]
+  );
+
+  return rows;
+}
+
+export async function approveRequirement(id, organizationId, reviewedBy) {
+  const [result] = await pool.execute(
+    `UPDATE job_requirements
+     SET
+       status = 'APPROVED',
+       reviewed_by = ?,
+       reviewed_at = NOW(),
+       rejection_reason = NULL
+     WHERE id = ?
+       AND organization_id = ?
+       AND status = 'PENDING_APPROVAL'`,
+    [reviewedBy, id, organizationId]
+  );
+
+  if (result.affectedRows === 0) {
+    return null;
+  }
+
+  return getRequirementById(id, organizationId);
+}
+
+export async function rejectRequirement(
+  id,
+  organizationId,
+  reviewedBy,
+  rejectionReason
+) {
+  const [result] = await pool.execute(
+    `UPDATE job_requirements
+     SET
+       status = 'REJECTED',
+       reviewed_by = ?,
+       reviewed_at = NOW(),
+       rejection_reason = ?
+     WHERE id = ?
+       AND organization_id = ?
+       AND status = 'PENDING_APPROVAL'`,
+    [reviewedBy, rejectionReason, id, organizationId]
   );
 
   if (result.affectedRows === 0) {

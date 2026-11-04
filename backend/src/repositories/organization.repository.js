@@ -10,6 +10,17 @@ export async function createOrganization(data) {
       [data.name, data.slug, data.email ?? null]
     );
     const organizationId = result.insertId;
+    await connection.execute(
+      `INSERT INTO organization_roles (organization_id, role_id)
+      SELECT ?, id FROM roles`,
+      [organizationId]
+    );
+
+   await connection.execute(
+  `INSERT INTO organization_permissions (organization_id, permission_id)
+   SELECT ?, id FROM permissions`,
+  [organizationId]
+);
     const [roles] = await connection.execute(
       `SELECT id FROM roles WHERE name = 'Organization Admin' LIMIT 1`
     );
@@ -41,14 +52,14 @@ export async function createOrganization(data) {
 }
 
 
-export async function getAllOrganizations(){
-    const [rows] = await pool.execute(
-        `Select id,name,slug, email, is_active, created_at
+export async function getAllOrganizations() {
+  const [rows] = await pool.execute(
+    `Select id,name,slug, email, is_active, created_at
          from organizations
          Order by created_at desc`
-    )
+  )
 
-    return rows;
+  return rows;
 }
 
 export async function updateOrganization(id, data) {

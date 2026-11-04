@@ -66,6 +66,7 @@ export async function createUserController(req, res, next) {
     if (
       error.message === "Organization not found" ||
       error.message === "Role not found" ||
+      error.message === "Role is not configured for this organization" ||
       error.message ===
         "Department not found or does not belong to this organization"
     ) {

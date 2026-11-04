@@ -23,7 +23,7 @@ export async function getRolesByOrganization(organizationId) {
     `SELECT r.id, r.name, r.description,
        COALESCE(configured.permission_count, 0) AS permission_count
      FROM roles r
-     LEFT JOIN (
+     INNER JOIN (
        SELECT role_id, COUNT(*) AS permission_count
        FROM organization_role_permissions
        WHERE organization_id = ?

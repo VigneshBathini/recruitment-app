@@ -20,6 +20,7 @@ export function currentUserController(req, res) {
   });
 }
 
+
 export async function loginController(req, res) {
   try {
     // 1. Validate the incoming login data

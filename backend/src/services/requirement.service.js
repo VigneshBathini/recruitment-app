@@ -7,6 +7,10 @@ import {
   getRequirementByIdForPlatform,
   departmentBelongsToOrganization,
   updateRequirement,
+  submitRequirement,
+  getPendingRequirements,
+  approveRequirement,
+  rejectRequirement
 } from "../repositories/requirement.repository.js";
 
 function createError(message, statusCode) {
@@ -123,6 +127,67 @@ export async function updateRequirementService(id, data, user) {
       "Requirement not found or cannot be updated because it is not in DRAFT status",
       404
     );
+  }
+
+  return requirement;
+}
+
+export async function submitRequirementService(id, user) {
+  const requirement = await submitRequirement(
+    id,
+    user.organization_id
+  );
+
+  if (!requirement) {
+    throw createError(
+      "Requirement not found or already submitted",
+      400
+    );
+  }
+
+  return requirement;
+}
+
+export async function getPendingRequirementsService(user) {
+  return await getPendingRequirements(user.organization_id);
+}
+
+export async function approveRequirementService(id, user) {
+  const requirement = await approveRequirement(
+    id,
+    user.organization_id,
+    user.id
+  );
+
+  if (!requirement) {
+    const error = new Error(
+      "Requirement not found or not pending approval"
+    );
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return requirement;
+}
+
+export async function rejectRequirementService(
+  id,
+  user,
+  rejectionReason
+) {
+  const requirement = await rejectRequirement(
+    id,
+    user.organization_id,
+    user.id,
+    rejectionReason
+  );
+
+  if (!requirement) {
+    const error = new Error(
+      "Requirement not found or not pending approval"
+    );
+    error.statusCode = 404;
+    throw error;
   }
 
   return requirement;

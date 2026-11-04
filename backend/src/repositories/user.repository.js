@@ -205,3 +205,12 @@ export async function getRoleById(roleId) {
 
   return rows[0] ?? null;
 }
+
+export async function roleBelongsToOrganization(roleId, organizationId) {
+  const [rows] = await pool.execute(
+    `SELECT role_id FROM organization_role_permissions
+     WHERE role_id = ? AND organization_id = ? LIMIT 1`,
+    [roleId, organizationId]
+  );
+  return rows.length > 0;
+}

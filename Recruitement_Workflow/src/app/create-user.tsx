@@ -317,7 +317,9 @@ export default function CreateUserScreen() {
   async function handleSelectOrganization(organizationId: number | null) {
     setSelectedOrganizationId(organizationId);
     setOrganizationId(organizationId);
+    setRoleId(null);
     setDepartmentId(null);
+    setRoles([]);
     setDepartments([]);
     if (organizationId === null) return;
     try {

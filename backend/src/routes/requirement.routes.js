@@ -6,6 +6,8 @@ import {
   getRequirementsController,
   getRequirementController,
   updateRequirementController,
+  submitRequirementController,
+  getPendingRequirementsController
 } from "../controllers/requirement.controller.js";
 
 import { authenticateManagementToken } from "../middleware/authenticateManagementToken.middleware.js";
@@ -23,11 +25,20 @@ router.get(
   getRequirementsController
 );
 
+// Get requirements pending approval
+router.get(
+  "/pending",
+  authorizeManagementPermission("requirement.view"),
+  getPendingRequirementsController
+);
+
+// View requirement by ID
 router.get(
   "/:id",
   authorizeManagementPermission("requirement.view"),
   getRequirementController
 );
+
 
 // Create a requirement
 router.post(
@@ -42,5 +53,13 @@ router.put(
   authorizeManagementPermission("requirement.manage"),
   updateRequirementController
 );
+
+// Submit a requirement for approval
+router.patch(
+  "/:id/submit",
+   authorizeManagementPermission("requirement.manage"),
+  submitRequirementController
+)
+
 
 export default router;

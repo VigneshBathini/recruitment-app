@@ -5,6 +5,7 @@ import {
   organizationExists,
   roleExists,
   getRoleById,
+  roleBelongsToOrganization,
   departmentBelongsToOrganization,
   getUsersByOrganization,
   updateUser,
@@ -22,6 +23,9 @@ export async function createUser(data) {
 
  const role = await getRoleById(data.role_id);
 validateAssignableRole(role);
+if (!(await roleBelongsToOrganization(data.role_id, data.organization_id))) {
+  throw Object.assign(new Error("Role is not configured for this organization"), { statusCode: 400 });
+}
 
   if (data.department_id != null) {
     const departmentIsValid =
@@ -76,6 +80,9 @@ export async function updateUserService(id, organizationId, data) {
   // 2. Verify that the selected role exists.
 const role = await getRoleById(data.role_id);
 validateAssignableRole(role);
+if (!(await roleBelongsToOrganization(data.role_id, organizationId))) {
+  throw Object.assign(new Error("Role is not configured for this organization"), { statusCode: 400 });
+}
 
   // 3. Verify that the department belongs to this organization.
   if (data.department_id != null) {

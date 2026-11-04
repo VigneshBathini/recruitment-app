@@ -7,18 +7,21 @@ import {
   updateRolePermissionsController,
 } from "../controllers/permission.controller.js";
 
-import { authenticateToken } from "../middleware/auth.middleware.js";
-import { authorizeRoles } from "../middleware/authorizeRole.middleware.js";
+import { authenticateManagementToken } from "../middleware/authenticateManagementToken.middleware.js";
 
 
 
 const router = Router();
 
-router.use(authenticateToken);
-router.use(authorizeRoles("Organization Admin"));
+router.use(authenticateManagementToken);
 
 router.get("/", getPermissionsController);
 router.get("/role/:roleId", getRolePermissionsController);
-router.put("/role/:roleId", updateRolePermissionsController);
+router.put("/role/:roleId", (req, res, next) => {
+  if (req.user?.account_type === "platform_admin") {
+    return res.status(403).json({ success: false, message: "Platform Admin access is read-only" });
+  }
+  return next();
+}, updateRolePermissionsController);
 
 export default router;

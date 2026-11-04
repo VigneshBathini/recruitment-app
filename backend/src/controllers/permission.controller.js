@@ -14,11 +14,16 @@ function parsePositiveId(value) {
 }
 
 function getOrganizationId(req) {
-  return parsePositiveId(req.user?.organization_id);
+  const requested = req.query.organizationId;
+  if (req.user?.account_type === "platform_admin") return parsePositiveId(requested);
+  const own = parsePositiveId(req.user?.organization_id);
+  return requested == null || Number(requested) === own ? own : null;
 }
 
 export async function getPermissionsController(req, res, next) {
   try {
+    const organizationId = getOrganizationId(req);
+    if (!organizationId) return res.status(403).json({ success: false, message: "Organization context is required" });
     const permissions = await getPermissions();
 
     return res.status(200).json({

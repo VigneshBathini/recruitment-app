@@ -15,6 +15,8 @@ import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import api from "@/services/api";
+import { getAccountType } from "@/services/token.service";
+import { getManagedOrganizations, type Organization } from "@/services/organizations";
 
 type Role = {
   id: number;
@@ -48,23 +50,42 @@ export default function RolePermissionsScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState("");
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [organizationId, setOrganizationId] = useState<number | null>(null);
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
+  const [showOrganizations, setShowOrganizations] = useState(false);
 
   const loadRolePermissions = useCallback(async (roleId: number) => {
     const response = await api.get<ApiResponse<Permission[]>>(
-      `/permissions/role/${roleId}`
+      `/permissions/role/${roleId}?organizationId=${organizationId}`
     );
 
     setSelectedPermissionIds(response.data.data.map((item) => item.id));
-  }, []);
+  }, [organizationId]);
 
   const loadInitialData = useCallback(async () => {
     setLoading(true);
     setLoadError("");
 
     try {
+      const accountType = await getAccountType();
+      const orgs = await getManagedOrganizations();
+      const selectedOrgId = accountType === "platform_admin" ? organizationId : orgs[0]?.id ?? null;
+      setIsPlatformAdmin(accountType === "platform_admin");
+      setOrganizations(orgs);
+      if (selectedOrgId === null) {
+        setOrganizationId(null);
+        setRoles([]);
+        setPermissions([]);
+        setSelectedRoleId(null);
+        setSelectedPermissionIds([]);
+        return;
+      }
+      if (organizationId !== selectedOrgId) setOrganizationId(selectedOrgId);
+      const orgQuery = `?organizationId=${selectedOrgId}`;
       const [rolesResponse, permissionsResponse] = await Promise.all([
-        api.get<ApiResponse<Role[]>>("/roles"),
-        api.get<ApiResponse<Permission[]>>("/permissions"),
+        api.get<ApiResponse<Role[]>>(`/roles${orgQuery}`),
+        api.get<ApiResponse<Permission[]>>(`/permissions${orgQuery}`),
       ]);
 
       const availableRoles = rolesResponse.data.data;
@@ -74,7 +95,8 @@ export default function RolePermissionsScreen() {
       if (availableRoles.length > 0) {
         const firstRoleId = availableRoles[0].id;
         setSelectedRoleId(firstRoleId);
-        await loadRolePermissions(firstRoleId);
+        const permissionsForRole = await api.get<ApiResponse<Permission[]>>(`/permissions/role/${firstRoleId}${orgQuery}`);
+        setSelectedPermissionIds(permissionsForRole.data.data.map((item) => item.id));
       } else {
         setSelectedRoleId(null);
         setSelectedPermissionIds([]);
@@ -87,7 +109,7 @@ export default function RolePermissionsScreen() {
     } finally {
       setLoading(false);
     }
-  }, [loadRolePermissions]);
+  }, [loadRolePermissions, organizationId]);
 
   useEffect(() => {
     void loadInitialData();
@@ -126,7 +148,7 @@ export default function RolePermissionsScreen() {
 
     try {
       const response = await api.put<ApiResponse<Permission[]>>(
-        `/permissions/role/${selectedRoleId}`,
+        `/permissions/role/${selectedRoleId}?organizationId=${organizationId}`,
         { permissionIds: selectedPermissionIds }
       );
 
@@ -178,6 +200,19 @@ export default function RolePermissionsScreen() {
           </View>
         ) : (
           <>
+            {isPlatformAdmin && (
+              <>
+                <ThemedText style={styles.sectionTitle}>Select Organization</ThemedText>
+                <Pressable onPress={() => setShowOrganizations((value) => !value)} style={[styles.roleCard, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
+                  <ThemedText>{organizations.find((item) => item.id === organizationId)?.name ?? "Choose an organization"}</ThemedText>
+                </Pressable>
+                {showOrganizations && organizations.map((organization) => (
+                  <Pressable key={organization.id} onPress={() => { setShowOrganizations(false); setOrganizationId(organization.id); }} style={[styles.roleCard, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
+                    <ThemedText>{organization.name}</ThemedText>
+                  </Pressable>
+                ))}
+              </>
+            )}
             <ThemedText style={styles.sectionTitle}>Select Role</ThemedText>
 
             <View style={styles.roleList}>
@@ -296,7 +331,7 @@ export default function RolePermissionsScreen() {
               })
             )}
 
-            <Pressable
+            {!isPlatformAdmin && <Pressable
               accessibilityRole="button"
               disabled={saving || loading || selectedRoleId === null}
               onPress={() => void handleSave()}
@@ -317,7 +352,7 @@ export default function RolePermissionsScreen() {
                   Save Permissions
                 </ThemedText>
               )}
-            </Pressable>
+            </Pressable>}
           </>
         )}
       </ScrollView>

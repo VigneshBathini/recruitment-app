@@ -82,7 +82,7 @@ export default function RootLayout() {
         const organizationAdminRoutes = ['/', '/departments', '/users', '/create-user', '/edit-user', '/role-permissions'];
 
         if (accountType === 'platform_admin') {
-          if (pathname === '/' || pathname === '/explore' || pathname === '/role-permissions') {
+          if (pathname === '/' || pathname === '/explore') {
             router.replace('/platform-admin');
           }
           return;
