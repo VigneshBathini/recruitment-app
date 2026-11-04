@@ -11,6 +11,7 @@ export type Requirement = {
   id: number;
   organization_id: number;
   department_id: number;
+  department_name?: string | null;
   title: string;
   openings: number;
   experience_min_years: number;

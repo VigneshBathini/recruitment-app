@@ -73,7 +73,7 @@ if (result.user.account_type === 'organization_user' && result.user.organization
 });
 }
 
-router.replace(getLandingRoute(result.user.role_name) as never);
+router.replace(getLandingRoute(result.user.role_name, result.user.account_type) as never);
     } catch (error) {
       let message = 'Unable to log in. Please try again.';
 

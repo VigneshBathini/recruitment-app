@@ -7,7 +7,7 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getCurrentOrganizationUser, logoutUser } from '@/services/auth.service';
 import type { OrganizationContext } from '@/services/token.service';
-import { getRequirements } from '@/services/requirement.service';
+import { getPendingRequirements, getRequirements } from '@/services/requirement.service';
 import type { Requirement } from '@/services/requirement.service';
 
 const modules = [
@@ -36,7 +36,9 @@ export function RoleDashboard({ role }: { role: 'Recruiter' | 'Hiring Manager' |
         if (!active) return;
         setContext(current);
         if (current.permissions.includes('requirement.view') || current.permissions.includes('requirement.approve')) {
-          const rows = await getRequirements();
+          const rows = current.permissions.includes('requirement.view')
+            ? await getRequirements()
+            : await getPendingRequirements();
           if (active) setRequirements(rows);
         }
       } catch (error) {
@@ -52,8 +54,8 @@ export function RoleDashboard({ role }: { role: 'Recruiter' | 'Hiring Manager' |
     permission === item.permission || permission === `${item.key}.manage` || permission === `${item.key}.approve`,
   ));
   const cards = [
-    { label: 'Approved requirements', value: loading ? '…' : String(requirements.filter((item) => item.status === 'APPROVED').length) },
-    { label: 'Pending approval', value: loading ? '…' : String(requirements.filter((item) => item.status === 'PENDING_APPROVAL').length) },
+    { label: 'Approved requirements', value: loading ? '…' : context?.permissions.includes('requirement.view') ? String(requirements.filter((item) => item.status === 'APPROVED').length) : '—' },
+    { label: 'Pending approval', value: loading ? '…' : context?.permissions.some((permission) => permission === 'requirement.view' || permission === 'requirement.approve') ? String(requirements.filter((item) => item.status === 'PENDING_APPROVAL').length) : '—' },
     { label: 'Organization', value: context?.name ?? (loading ? '…' : '—') },
   ];
 
@@ -80,7 +82,7 @@ export function RoleDashboard({ role }: { role: 'Recruiter' | 'Hiring Manager' |
             {loading ? <ActivityIndicator color={theme.primary} /> : permittedModules.length === 0 ? <ThemedText style={[styles.empty, { color: theme.textSecondary }]}>No recruitment modules are enabled for this role yet.</ThemedText> : (
               <View style={styles.grid}>{permittedModules.map((item) => <Pressable key={item.key} onPress={() => item.key === 'requirement' ? router.push('/requirements') : router.push({ pathname: '/module', params: { key: item.key, title: item.title } } as never)} style={({ pressed }) => [styles.module, { width: wide ? '48.5%' : '100%', backgroundColor: theme.backgroundElement, borderColor: theme.border }, pressed && styles.pressed]}>
                 <View style={[styles.icon, { backgroundColor: theme.primaryMuted }]}><ThemedText style={[styles.iconText, { color: theme.primary }]}>{item.icon}</ThemedText></View>
-                <View style={styles.moduleCopy}><ThemedText style={styles.moduleTitle}>{item.title}</ThemedText><ThemedText style={[styles.moduleDescription, { color: theme.textSecondary }]}>{item.key === 'requirement' ? `${requirements.length} requirements in your workspace` : `Open ${item.title.toLowerCase()} workspace`}</ThemedText></View><ThemedText style={{ color: theme.textSecondary }}>↗</ThemedText>
+                <View style={styles.moduleCopy}><ThemedText style={styles.moduleTitle}>{item.title}</ThemedText><ThemedText style={[styles.moduleDescription, { color: theme.textSecondary }]}>{item.key === 'requirement' ? 'Review and manage hiring needs' : `Open ${item.title.toLowerCase()} workspace`}</ThemedText></View><ThemedText style={{ color: theme.textSecondary }}>↗</ThemedText>
               </Pressable>)}</View>
             )}
           </View>

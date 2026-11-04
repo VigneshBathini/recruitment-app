@@ -55,11 +55,16 @@ export async function getRequirementById(id, organizationId) {
        jr.employment_type,
        jr.description,
        jr.status,
+       jr.reviewed_by,
+       CONCAT(reviewer.first_name, ' ', COALESCE(reviewer.last_name, '')) AS reviewer_name,
+       jr.reviewed_at,
+       jr.rejection_reason,
        jr.created_at,
        jr.updated_at
      FROM job_requirements jr
      LEFT JOIN departments d ON d.id = jr.department_id
      INNER JOIN users u ON u.id = jr.created_by
+     LEFT JOIN users reviewer ON reviewer.id = jr.reviewed_by
      WHERE jr.id = ?
        AND jr.organization_id = ?
      LIMIT 1`,
@@ -87,11 +92,16 @@ export async function getRequirementsByOrganization(organizationId) {
        jr.employment_type,
        jr.description,
        jr.status,
+       jr.reviewed_by,
+       CONCAT(reviewer.first_name, ' ', COALESCE(reviewer.last_name, '')) AS reviewer_name,
+       jr.reviewed_at,
+       jr.rejection_reason,
        jr.created_at,
        jr.updated_at
      FROM job_requirements jr
      LEFT JOIN departments d ON d.id = jr.department_id
      INNER JOIN users u ON u.id = jr.created_by
+     LEFT JOIN users reviewer ON reviewer.id = jr.reviewed_by
      WHERE jr.organization_id = ?
      ORDER BY jr.created_at DESC`,
     [organizationId]
@@ -153,7 +163,7 @@ export async function departmentBelongsToOrganization(
   return rows.length > 0;
 }
 
-// Update a draft requirement
+// Update a draft or rejected requirement
 export async function updateRequirement(id, organizationId, data) {
   const [result] = await pool.execute(
     `UPDATE job_requirements
@@ -167,7 +177,7 @@ export async function updateRequirement(id, organizationId, data) {
          description = ?
      WHERE id = ?
        AND organization_id = ?
-       AND status = 'DRAFT'`,
+        AND status IN ('DRAFT', 'REJECTED')`,
     [
       data.department_id ?? null,
       data.title,
@@ -189,14 +199,14 @@ export async function updateRequirement(id, organizationId, data) {
   return getRequirementById(id, organizationId);
 }
 
-// Submit a draft requirement for approval
+// Submit a draft or rejected requirement for approval
 export async function submitRequirement(id, organizationId) {
   const [result] = await pool.execute(
     `UPDATE job_requirements
      SET status = 'PENDING_APPROVAL'
      WHERE id = ?
        AND organization_id = ?
-       AND status = 'DRAFT'`,
+       AND status IN ('DRAFT', 'REJECTED')`,
     [id, organizationId]
   );
 
@@ -225,11 +235,16 @@ export async function getPendingRequirements(organizationId) {
        jr.employment_type,
        jr.description,
        jr.status,
+        jr.reviewed_by,
+        CONCAT(reviewer.first_name, ' ', COALESCE(reviewer.last_name, '')) AS reviewer_name,
+        jr.reviewed_at,
+        jr.rejection_reason,
        jr.created_at,
        jr.updated_at
      FROM job_requirements jr
      LEFT JOIN departments d ON d.id = jr.department_id
      INNER JOIN users u ON u.id = jr.created_by
+     LEFT JOIN users reviewer ON reviewer.id = jr.reviewed_by
      WHERE jr.organization_id = ?
        AND jr.status = 'PENDING_APPROVAL'
      ORDER BY jr.created_at ASC`,

@@ -18,7 +18,9 @@ router.use(authenticateManagementToken);
 // Read departments.
 router.get(
   "/:organizationId",
-  authorizeManagementPermission("department.view"),
+  // Requirement managers need the organization-scoped list to assign a department
+  // when creating a requirement.
+  authorizeManagementPermission(["department.view", "requirement.manage"]),
   getDepartmentsController
 );
 

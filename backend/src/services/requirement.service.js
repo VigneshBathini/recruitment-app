@@ -124,7 +124,7 @@ export async function updateRequirementService(id, data, user) {
 
   if (!requirement) {
     throw createError(
-      "Requirement not found or cannot be updated because it is not in DRAFT status",
+      "Requirement not found or cannot be updated because it is not in DRAFT or REJECTED status",
       404
     );
   }

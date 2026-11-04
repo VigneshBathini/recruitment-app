@@ -23,14 +23,14 @@ router.use(authenticateManagementToken);
 // View requirements
 router.get(
   "/",
-  authorizeManagementPermission("requirement.view"),
+  authorizeManagementPermission(["requirement.view", "requirement.manage"]),
   getRequirementsController
 );
 
 // Get requirements pending approval
 router.get(
   "/pending",
-  authorizeManagementPermission("requirement.view"),
+  authorizeManagementPermission(["requirement.view", "requirement.approve"]),
   getPendingRequirementsController
 );
 

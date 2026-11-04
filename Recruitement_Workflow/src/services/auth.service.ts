@@ -25,7 +25,11 @@ export type AuthUser = {
   permissions?: string[];
 };
 
-export function getLandingRoute(roleName: string): string {
+export function getLandingRoute(
+  roleName: string,
+  accountType?: AuthUser['account_type'],
+): string {
+  if (accountType === 'platform_admin') return '/platform-admin';
   switch (roleName.trim().toLowerCase()) {
     case 'platform admin': return '/platform-admin';
     case 'recruiter': return '/recruiter-dashboard';

@@ -4,6 +4,9 @@ import {
 } from "../repositories/permission.repository.js";
 
 export function authorizePermission(requiredPermission) {
+  const requiredPermissions = Array.isArray(requiredPermission)
+    ? requiredPermission
+    : [requiredPermission];
   return async function (req, res, next) {
     if (!req.user) {
       return res.status(401).json({
@@ -30,13 +33,13 @@ export function authorizePermission(requiredPermission) {
 
       const hasPermission = permissions.some(
         (permission) =>
-          permission.name === requiredPermission
+          requiredPermissions.includes(permission.name)
       );
 
       if (!hasPermission) {
         return res.status(403).json({
           success: false,
-          message: `Missing required permission: ${requiredPermission}`,
+          message: `Missing required permission: ${requiredPermissions.join(" or ")}`,
         });
       }
 

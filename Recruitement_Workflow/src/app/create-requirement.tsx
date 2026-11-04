@@ -2,6 +2,8 @@ import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,6 +11,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { router } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
@@ -114,14 +117,44 @@ export default function CreateRequirementScreen() {
 
     setErrors({});
     setSubmitError('');
-    const numberValue = (value: string) =>
-      value.trim() === '' ? Number.NaN : Number(value);
+    const numericErrors: FormErrors = {};
+    const parseNumber = (
+      field: 'department_id' | 'openings' | 'experience_min_years' | 'experience_max_years',
+      label: string,
+    ): number | undefined => {
+      const rawValue = values[field].trim();
+      if (!rawValue) {
+        numericErrors[field] = field === 'department_id'
+          ? 'Select a department.'
+          : `${label} is required.`;
+        return undefined;
+      }
+
+      const parsed = Number(rawValue);
+      if (!Number.isFinite(parsed)) {
+        numericErrors[field] = `Enter a valid ${label.toLowerCase()}.`;
+        return undefined;
+      }
+      return parsed;
+    };
+
+    const departmentId = parseNumber('department_id', 'Department');
+    const openings = parseNumber('openings', 'Openings');
+    const minimumExperience = parseNumber('experience_min_years', 'Minimum experience');
+    const maximumExperience = parseNumber('experience_max_years', 'Maximum experience');
+
+    if (Object.keys(numericErrors).length > 0) {
+      setErrors(numericErrors);
+      setSubmitError('Please review the highlighted fields.');
+      return;
+    }
+
     const validation = createRequirementSchema.safeParse({
-      department_id: numberValue(values.department_id),
+      department_id: departmentId!,
       title: values.title,
-      openings: numberValue(values.openings),
-      experience_min_years: numberValue(values.experience_min_years),
-      experience_max_years: numberValue(values.experience_max_years),
+      openings: openings!,
+      experience_min_years: minimumExperience!,
+      experience_max_years: maximumExperience!,
       location: values.location,
       employment_type: values.employment_type,
       description: values.description.trim() || null,
@@ -460,7 +493,32 @@ function SelectField({
   return (
     <View style={styles.field}>
       <ThemedText type="smallBold">{label}</ThemedText>
-      <Pressable
+      {Platform.OS === 'web' ? (
+        <View
+          style={[
+            styles.webPickerWrap,
+            {
+              backgroundColor: theme.backgroundElement,
+              borderColor: error ? theme.danger : theme.border,
+              opacity: disabled ? 0.55 : 1,
+            },
+          ]}>
+          <Picker
+            accessibilityLabel={label}
+            enabled={!disabled}
+            selectedValue={value}
+            onValueChange={(nextValue) => onChange(String(nextValue ?? ''))}
+            style={[
+              styles.webPicker,
+              { color: theme.text, backgroundColor: theme.backgroundElement },
+            ]}>
+            <Picker.Item label={placeholder} value="" color={theme.textSecondary} />
+            {options.map((option) => (
+              <Picker.Item key={option.value} label={option.label} value={option.value} color={theme.text} />
+            ))}
+          </Picker>
+        </View>
+      ) : <Pressable
         accessibilityRole="button"
         accessibilityLabel={label}
         accessibilityState={{ expanded: open, disabled }}
@@ -479,46 +537,68 @@ function SelectField({
           {selected?.label ?? placeholder}
         </ThemedText>
         <ThemedText themeColor="textSecondary">{open ? '▲' : '▼'}</ThemedText>
-      </Pressable>
-      {open ? (
-        <ScrollView
-          nestedScrollEnabled
-          keyboardShouldPersistTaps="handled"
-          style={[
-            styles.options,
-            {
-              backgroundColor: theme.backgroundElement,
-              borderColor: theme.border,
-            },
-          ]}>
-          {options.map((option) => {
-            const isSelected = option.value === value;
-            return (
-              <Pressable
-                key={option.value}
-                accessibilityRole="button"
-                accessibilityState={{ selected: isSelected }}
-                onPress={() => {
-                  onChange(option.value);
-                  setOpen(false);
-                }}
-                style={({ pressed }) => [
-                  styles.option,
-                  isSelected && { backgroundColor: theme.primaryMuted },
-                  pressed && styles.pressed,
-                ]}>
-                <ThemedText
-                  style={{
-                    color: isSelected ? theme.primary : theme.text,
-                    fontWeight: isSelected ? '700' : '500',
-                  }}>
-                  {option.label}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      ) : null}
+      </Pressable>}
+      {Platform.OS !== 'web' ? <Modal
+        visible={open}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOpen(false)}>
+        <View style={styles.dropdownBackdrop}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close options"
+            style={StyleSheet.absoluteFill}
+            onPress={() => setOpen(false)}
+          />
+          <View
+            accessibilityLabel={`${label} options`}
+            style={[
+              styles.dropdownPanel,
+              {
+                backgroundColor: theme.backgroundElement,
+                borderColor: theme.border,
+              },
+            ]}>
+            <ThemedText type="smallBold" style={styles.dropdownTitle}>
+              {label.replace(/\s\*$/, '')}
+            </ThemedText>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator
+              style={styles.options}>
+              {options.map((option) => {
+                const isSelected = option.value === value;
+                return (
+                  <Pressable
+                    key={option.value}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
+                    onPress={() => {
+                      onChange(option.value);
+                      setOpen(false);
+                    }}
+                    style={({ pressed }) => [
+                      styles.option,
+                      isSelected && { backgroundColor: theme.primaryMuted },
+                      pressed && styles.pressed,
+                    ]}>
+                    <ThemedText
+                      style={{
+                        color: isSelected ? theme.primary : theme.text,
+                        fontWeight: isSelected ? '700' : '500',
+                      }}>
+                      {option.label}
+                    </ThemedText>
+                    {isSelected ? (
+                      <ThemedText style={{ color: theme.primary }}>Selected</ThemedText>
+                    ) : null}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal> : null}
       {error ? (
         <ThemedText type="small" style={{ color: theme.danger }}>
           {error}
@@ -618,11 +698,45 @@ const styles = StyleSheet.create({
   selectText: {
     flex: 1,
   },
-  options: {
-    maxHeight: 220,
+  webPickerWrap: {
+    minHeight: 50,
     borderWidth: 1,
     borderRadius: 10,
+    justifyContent: 'center',
     overflow: 'hidden',
+  },
+  webPicker: {
+    width: '100%',
+    height: 48,
+    paddingHorizontal: Spacing.three,
+    borderWidth: 0,
+  },
+  dropdownBackdrop: {
+    flex: 1,
+    padding: Spacing.three,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(15, 18, 32, 0.48)',
+  },
+  dropdownPanel: {
+    width: '100%',
+    maxWidth: 520,
+    maxHeight: '70%',
+    alignSelf: 'center',
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: Spacing.two,
+    elevation: 12,
+    shadowColor: '#000000',
+    shadowOpacity: 0.2,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+  },
+  dropdownTitle: {
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.two,
+  },
+  options: {
+    flexShrink: 1,
   },
   option: {
     minHeight: 46,

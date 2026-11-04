@@ -75,31 +75,30 @@ export default function RootLayout() {
             router.replace('/platform-admin');
           } else {
             const organization = await getCurrentOrganizationUser();
-            router.replace(getLandingRoute(organization.role_name) as never);
+            router.replace(getLandingRoute(organization.role_name, accountType) as never);
           }
           return;
         }
 
         const platformOnlyRoutes = ['/platform-admin', '/organizations', '/create-organization'];
         const organizationAdminRoutes = ['/', '/departments', '/users', '/create-user', '/edit-user', '/role-permissions'];
+        const roleDashboardRoutes = [
+          '/recruiter-dashboard', '/hiring-manager-dashboard', '/interviewer-dashboard',
+        ];
         const requirementRoutes = [
   '/requirements',
   '/create-requirement',
-  '/edit-requirement',
 ];
         if (accountType === 'platform_admin') {
-          if (pathname === '/' || pathname === '/explore') {
+          if (pathname === '/' || pathname === '/explore' || roleDashboardRoutes.includes(pathname)) {
             router.replace('/platform-admin');
           }
           return;
         }
 
-        const roleDashboardRoutes = [
-          '/recruiter-dashboard', '/hiring-manager-dashboard', '/interviewer-dashboard',
-        ];
         if (pathname === '/' || roleDashboardRoutes.includes(pathname)) {
           const organization = await getCurrentOrganizationUser();
-          const landingRoute = getLandingRoute(organization.role_name);
+          const landingRoute = getLandingRoute(organization.role_name, accountType);
           if (pathname !== landingRoute) router.replace(landingRoute as never);
           return;
         }
@@ -124,7 +123,8 @@ if (requirementRoutes.includes(pathname)) {
   if (pathname === '/requirements') {
     const canView =
       permissions.includes('requirement.view') ||
-      permissions.includes('requirement.approve');
+      permissions.includes('requirement.approve') ||
+      permissions.includes('requirement.manage');
 
     if (!canView) {
       router.replace('/explore');
@@ -203,10 +203,6 @@ if (requirementRoutes.includes(pathname)) {
 <Stack.Screen
   name="create-requirement"
   options={{ title: 'Create Requirement' }}
-/>
-<Stack.Screen
-  name="edit-requirement"
-  options={{ title: 'Edit Requirement' }}
 />
       </Stack>
 
