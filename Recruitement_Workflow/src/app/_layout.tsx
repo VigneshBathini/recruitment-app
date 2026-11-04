@@ -25,32 +25,29 @@ export default function RootLayout() {
     let mounted = true;
 
     async function initializeAuth() {
-      try {
-        const token = await getToken();
-        const accountType = await getAccountType();
+  try {
+    const token = await getToken();
+    const accountType = await getAccountType();
 
-        if (!mounted) return;
+    if (!mounted) return;
 
-        if (token && accountType === "platform_admin") {
-          router.replace("/platform-admin");
-        } else if (token && accountType === "organization_user") {
-          router.replace("/");
-          
-        } else {
-          router.replace("/login");
-        }
-      } catch (error) {
-        console.error('Token check failed:', error);
-
-        if (mounted) {
-          router.replace('/login');
-        }
-      } finally {
-        if (mounted) {
-          setAuthChecked(true);
-        }
-      }
+    if (!token || !accountType) {
+      router.replace('/login');
     }
+    // Preserve the requested route for authenticated users.
+    // Route access is handled by validateRouteAccess().
+  } catch (error) {
+    console.error('Token check failed:', error);
+
+    if (mounted) {
+      router.replace('/login');
+    }
+  } finally {
+    if (mounted) {
+      setAuthChecked(true);
+    }
+  }
+}
 
     initializeAuth();
 
@@ -80,7 +77,11 @@ export default function RootLayout() {
 
         const platformOnlyRoutes = ['/platform-admin', '/organizations', '/create-organization'];
         const organizationAdminRoutes = ['/', '/departments', '/users', '/create-user', '/edit-user', '/role-permissions'];
-
+        const requirementRoutes = [
+  '/requirements',
+  '/create-requirement',
+  '/edit-requirement',
+];
         if (accountType === 'platform_admin') {
           if (pathname === '/' || pathname === '/explore') {
             router.replace('/platform-admin');
@@ -93,12 +94,30 @@ export default function RootLayout() {
           return;
         }
 
-        if (organizationAdminRoutes.includes(pathname)) {
-          const organization = await getCurrentOrganizationUser();
-          if (organization.role_name !== 'Organization Admin') {
-            router.replace('/explore');
-          }
-        }
+        const organization = await getCurrentOrganizationUser();
+
+if (organizationAdminRoutes.includes(pathname)) {
+  if (organization.role_name !== 'Organization Admin') {
+    router.replace('/explore');
+  }
+  return;
+}
+
+if (requirementRoutes.includes(pathname)) {
+  const permissions = organization.permissions ?? [];
+
+  if (pathname === '/requirements') {
+    const canView =
+      permissions.includes('requirement.view') ||
+      permissions.includes('requirement.approve');
+
+    if (!canView) {
+      router.replace('/explore');
+    }
+  } else if (!permissions.includes('requirement.manage')) {
+    router.replace('/requirements');
+  }
+}
       } catch {
         void logoutUser();
         if (active) router.replace('/login');
@@ -158,7 +177,20 @@ export default function RootLayout() {
           name="platform-admin"
           options={{ headerShown: false }}
         />
+        <Stack.Screen
+  name="requirements"
+  options={{ title: 'Requirement Management' }}
+/>
+<Stack.Screen
+  name="create-requirement"
+  options={{ title: 'Create Requirement' }}
+/>
+<Stack.Screen
+  name="edit-requirement"
+  options={{ title: 'Edit Requirement' }}
+/>
       </Stack>
+
     </ThemeProvider>
   );
 }

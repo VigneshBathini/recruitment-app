@@ -8,6 +8,8 @@ export type LoginInput = {
   password: string;
 };
 
+
+
 export type AuthUser = {
   id: number;
   account_type: "platform_admin" | "organization_user";
@@ -20,6 +22,7 @@ export type AuthUser = {
   first_name: string;
   last_name: string | null;
   email: string;
+  permissions?: string[];
 };
 
 type LoginResponse = {
@@ -49,11 +52,12 @@ export async function getCurrentOrganizationUser(): Promise<OrganizationContext>
     throw new Error("Organization account details are missing.");
   }
   const context: OrganizationContext = {
-    id: user.organization_id,
-    name: user.organization_name ?? user.organization_slug,
-    slug: user.organization_slug,
-    role_name: user.role_name,
-  };
+  id: user.organization_id,
+  name: user.organization_name ?? user.organization_slug,
+  slug: user.organization_slug,
+  role_name: user.role_name,
+  permissions: user.permissions ?? [],
+};
   await saveOrganizationContext(context);
   return context;
 }

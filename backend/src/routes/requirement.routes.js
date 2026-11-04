@@ -7,7 +7,9 @@ import {
   getRequirementController,
   updateRequirementController,
   submitRequirementController,
-  getPendingRequirementsController
+  getPendingRequirementsController,
+  approveRequirementController,
+  rejectRequirementController
 } from "../controllers/requirement.controller.js";
 
 import { authenticateManagementToken } from "../middleware/authenticateManagementToken.middleware.js";
@@ -61,5 +63,19 @@ router.patch(
   submitRequirementController
 )
 
+
+// Approve a requirement
+router.patch(
+  "/:id/approve",
+  authorizeManagementPermission("requirement.approve"),
+  approveRequirementController
+)
+
+// Reject a requirement
+router.patch(
+   "/:id/reject",
+  authorizeManagementPermission("requirement.approve"),
+  rejectRequirementController
+)
 
 export default router;

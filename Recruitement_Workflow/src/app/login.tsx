@@ -64,12 +64,13 @@ await saveToken(result.token);
 await saveAccountType(result.user.account_type);
 
 if (result.user.account_type === 'organization_user' && result.user.organization_id && result.user.organization_slug) {
-  await saveOrganizationContext({
-    id: result.user.organization_id,
-    name: result.user.organization_name ?? result.user.organization_slug,
-    slug: result.user.organization_slug,
-    role_name: result.user.role_name,
-  });
+ await saveOrganizationContext({
+  id: result.user.organization_id,
+  name: result.user.organization_name ?? result.user.organization_slug,
+  slug: result.user.organization_slug,
+  role_name: result.user.role_name,
+  permissions: result.user.permissions ?? [],
+});
 }
 
 if (result.user.account_type === "platform_admin") {

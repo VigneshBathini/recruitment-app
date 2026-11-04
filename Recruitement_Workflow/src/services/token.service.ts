@@ -12,6 +12,7 @@ export type OrganizationContext = {
   name: string;
   slug: string;
   role_name: string;
+  permissions: string[];
 };
 
 export async function saveOrganizationContext(context: OrganizationContext): Promise<void> {
