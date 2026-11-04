@@ -12,7 +12,7 @@ import {
 
 import { Colors } from '@/constants/theme';
 import { getToken, getAccountType } from '@/services/token.service';
-import { getCurrentOrganizationUser, logoutUser } from '@/services/auth.service';
+import { getCurrentOrganizationUser, getLandingRoute, logoutUser } from '@/services/auth.service';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -71,7 +71,12 @@ export default function RootLayout() {
         }
 
         if (pathname === '/login') {
-          router.replace(accountType === 'platform_admin' ? '/platform-admin' : '/');
+          if (accountType === 'platform_admin') {
+            router.replace('/platform-admin');
+          } else {
+            const organization = await getCurrentOrganizationUser();
+            router.replace(getLandingRoute(organization.role_name) as never);
+          }
           return;
         }
 
@@ -86,6 +91,16 @@ export default function RootLayout() {
           if (pathname === '/' || pathname === '/explore') {
             router.replace('/platform-admin');
           }
+          return;
+        }
+
+        const roleDashboardRoutes = [
+          '/recruiter-dashboard', '/hiring-manager-dashboard', '/interviewer-dashboard',
+        ];
+        if (pathname === '/' || roleDashboardRoutes.includes(pathname)) {
+          const organization = await getCurrentOrganizationUser();
+          const landingRoute = getLandingRoute(organization.role_name);
+          if (pathname !== landingRoute) router.replace(landingRoute as never);
           return;
         }
 
@@ -156,6 +171,10 @@ if (requirementRoutes.includes(pathname)) {
       >
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="recruiter-dashboard" options={{ headerShown: false }} />
+        <Stack.Screen name="hiring-manager-dashboard" options={{ headerShown: false }} />
+        <Stack.Screen name="interviewer-dashboard" options={{ headerShown: false }} />
+        <Stack.Screen name="module" options={{ title: 'Recruitment module' }} />
         <Stack.Screen
           name="create-organization"
           options={{ title: 'Create Organization' }}

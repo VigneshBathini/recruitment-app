@@ -16,7 +16,7 @@ import { router } from 'expo-router';
 import { isAxiosError } from 'axios';
 
 import { useTheme } from '@/hooks/use-theme';
-import { loginUser } from '@/services/auth.service';
+import { getLandingRoute, loginUser } from '@/services/auth.service';
 import { saveToken, saveAccountType, saveOrganizationContext } from '@/services/token.service';
 
 export default function LoginScreen() {
@@ -73,11 +73,7 @@ if (result.user.account_type === 'organization_user' && result.user.organization
 });
 }
 
-if (result.user.account_type === "platform_admin") {
-  router.replace("/platform-admin");
-} else {
-  router.replace("/");
-}
+router.replace(getLandingRoute(result.user.role_name) as never);
     } catch (error) {
       let message = 'Unable to log in. Please try again.';
 

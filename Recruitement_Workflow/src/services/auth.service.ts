@@ -25,6 +25,16 @@ export type AuthUser = {
   permissions?: string[];
 };
 
+export function getLandingRoute(roleName: string): string {
+  switch (roleName.trim().toLowerCase()) {
+    case 'platform admin': return '/platform-admin';
+    case 'recruiter': return '/recruiter-dashboard';
+    case 'hiring manager': return '/hiring-manager-dashboard';
+    case 'interviewer': return '/interviewer-dashboard';
+    default: return '/';
+  }
+}
+
 type LoginResponse = {
   success: boolean;
   message: string;
