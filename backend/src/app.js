@@ -14,6 +14,11 @@ import permissionRoutes from "./routes/permission.routes.js";
 import platformAdminRoutes from "./routes/platformAdmin.routes.js";
 import requirementRoutes from "./routes/requirement.routes.js";
 import approvalRoutes from "./routes/approval.routes.js";
+import jobDescriptionRoutes from "./routes/jobDescription.routes.js";
+import publicJobRoutes from "./routes/publicJob.routes.js";
+import candidateAuthRoutes from "./routes/candidateAuth.routes.js";
+import candidateRoutes from "./routes/candidate.routes.js";
+import applicationRoutes from "./routes/application.routes.js";
 
 const app = express();
 
@@ -56,6 +61,11 @@ app.use("/api/permissions", permissionRoutes);
 app.use("/api/platform-admin", platformAdminRoutes);
 app.use("/api/requirements", requirementRoutes);
 app.use("/api/approvals", approvalRoutes);
+app.use("/api/public", publicJobRoutes);
+app.use("/api/candidate-auth", candidateAuthRoutes);
+app.use("/api/candidates", candidateRoutes);
+app.use("/api/applications", applicationRoutes);
+app.use("/api/jobs", jobDescriptionRoutes);
 
 const PORT = process.env.PORT || 5000;
 

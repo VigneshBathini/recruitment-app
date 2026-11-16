@@ -4,6 +4,7 @@ import {
   getApprovalRequest,
   getApprovalWorkflows,
 } from "../repositories/approval.repository.js";
+import { getPermissionsByRoleId } from "../repositories/permission.repository.js";
 
 function createError(message, statusCode) {
   const error = new Error(message);
@@ -26,14 +27,25 @@ function requiredEntityType(value) {
   return value.trim();
 }
 
+async function requireJobPermission(user, permissionNames) {
+  const permissions = await getPermissionsByRoleId(user.organization_id, user.role_id);
+  const requiredPermissions = Array.isArray(permissionNames) ? permissionNames : [permissionNames];
+  if (!permissions.some((permission) => requiredPermissions.includes(permission.name))) {
+    throw createError(`Missing required permission: ${requiredPermissions.join(" or ")}`, 403);
+  }
+}
+
 export async function getApprovalWorkflowsService(entityType, user) {
-  return getApprovalWorkflows(user.organization_id, requiredEntityType(entityType));
+  const normalizedEntityType = requiredEntityType(entityType);
+  if (normalizedEntityType === "JOB") await requireJobPermission(user, "job.manage");
+  return getApprovalWorkflows(user.organization_id, normalizedEntityType);
 }
 
 export async function submitApprovalRequestService(data, user) {
   const workflowId = requiredId(data.workflow_id, "workflow_id");
   const entityId = requiredId(data.entity_id, "entity_id");
   const entityType = requiredEntityType(data.entity_type);
+  if (entityType === "JOB") await requireJobPermission(user, "job.manage");
   return createApprovalRequest({
     organizationId: user.organization_id,
     workflowId,
@@ -46,6 +58,9 @@ export async function submitApprovalRequestService(data, user) {
 export async function getApprovalRequestService(id, user) {
   const request = await getApprovalRequest(requiredId(id, "request id"), user.organization_id);
   if (!request) throw createError("Approval request not found", 404);
+  if (request.entity_type === "JOB") {
+    await requireJobPermission(user, ["job.view", "job.manage", "job.approve"]);
+  }
   return request;
 }
 
@@ -56,8 +71,11 @@ export async function decideApprovalRequestService(id, data, user, decision) {
   }
   const comments = data?.comments == null ? null : data.comments.trim();
   if (comments && comments.length > 5000) throw createError("Comments cannot exceed 5000 characters", 400);
+  const request = await getApprovalRequest(requiredId(id, "request id"), user.organization_id);
+  if (!request) throw createError("Approval request not found", 404);
+  if (request.entity_type === "JOB") await requireJobPermission(user, "job.approve");
   return decideApprovalRequest({
-    requestId: requiredId(id, "request id"),
+    requestId: request.id,
     organizationId: user.organization_id,
     userId: user.id,
     roleId: user.role_id,

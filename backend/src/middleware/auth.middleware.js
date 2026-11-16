@@ -39,7 +39,8 @@ export async function authenticateToken(req, res, next) {
   if (
     typeof decoded === "string" ||
     !decoded.sub ||
-    !decoded.organization_id
+    !decoded.organization_id ||
+    decoded.account_type !== "organization_user"
   ) {
     return res.status(401).json({
       success: false,

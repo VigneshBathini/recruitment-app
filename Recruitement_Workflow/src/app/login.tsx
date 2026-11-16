@@ -4,6 +4,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -241,6 +242,9 @@ router.replace(getLandingRoute(result.user.role_name, result.user.account_type) 
           <Text style={[styles.footer, { color: colors.secondaryText }]}>
             Secure access for your organization
           </Text>
+          <Pressable accessibilityRole="link" onPress={() => router.push('/candidate-login')}>
+            <Text style={[styles.candidateLink, { color: colors.primary }]}>Candidate? Sign in here</Text>
+          </Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -356,5 +360,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 12,
     lineHeight: 18,
+  },
+  candidateLink: {
+    marginTop: 14,
+    textAlign: 'center',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

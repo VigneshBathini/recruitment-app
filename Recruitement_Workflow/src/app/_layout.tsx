@@ -12,6 +12,7 @@ import {
 
 import { Colors } from '@/constants/theme';
 import { getToken, getAccountType } from '@/services/token.service';
+import { getCandidateToken } from '@/services/candidate-session.service';
 import { getCurrentOrganizationUser, getLandingRoute, logoutUser } from '@/services/auth.service';
 
 export default function RootLayout() {
@@ -31,7 +32,7 @@ export default function RootLayout() {
 
     if (!mounted) return;
 
-    if (!token || !accountType) {
+    if ((!token || !accountType) && !pathname.startsWith('/candidate-')) {
       router.replace('/login');
     }
     // Preserve the requested route for authenticated users.
@@ -54,7 +55,7 @@ export default function RootLayout() {
     return () => {
       mounted = false;
     };
-  }, [router]);
+  }, [pathname, router]);
 
   useEffect(() => {
     if (!authChecked) return;
@@ -64,6 +65,19 @@ export default function RootLayout() {
       try {
         const [token, accountType] = await Promise.all([getToken(), getAccountType()]);
         if (!active) return;
+
+        if (pathname.startsWith('/candidate-')) {
+          const candidateToken = await getCandidateToken();
+          if (!active) return;
+          if (['/candidate-dashboard', '/candidate-jobs', '/candidate-job-details', '/candidate-applications'].includes(pathname)) {
+            if (!candidateToken) router.replace('/candidate-login');
+            return;
+          }
+          if (pathname === '/candidate-login' || pathname === '/candidate-register') {
+            if (candidateToken) router.replace('/candidate-dashboard');
+            return;
+          }
+        }
 
         if (!token || !accountType) {
           if (pathname !== '/login') router.replace('/login');
@@ -170,6 +184,14 @@ if (requirementRoutes.includes(pathname)) {
         }}
       >
         <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen name="candidate-login" options={{ headerShown: false }} />
+        <Stack.Screen name="candidate-register" options={{ headerShown: false }} />
+        <Stack.Screen name="candidate-dashboard" options={{ headerShown: false }} />
+        <Stack.Screen name="candidate-jobs" options={{ headerShown: false }} />
+        <Stack.Screen name="candidate-job-details" options={{ headerShown: false }} />
+        <Stack.Screen name="candidate-applications" options={{ headerShown: false }} />
+        <Stack.Screen name="applications" options={{ headerShown: false }} />
+        <Stack.Screen name="application-details" options={{ headerShown: false }} />
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="recruiter-dashboard" options={{ headerShown: false }} />
         <Stack.Screen name="hiring-manager-dashboard" options={{ headerShown: false }} />

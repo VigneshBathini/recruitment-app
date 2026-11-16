@@ -4,13 +4,29 @@ import pool from "../config/database.js";
 const entityOwnershipChecks = new Map([
   ["JOB_REQUIREMENT", async (connection, entityId, organizationId) => {
     const [rows] = await connection.execute(
-      `SELECT id FROM job_requirements
-       WHERE id = ? AND organization_id = ? LIMIT 1`,
+      `SELECT id
+       FROM job_requirements
+       WHERE id = ? AND organization_id = ?
+       LIMIT 1`,
       [entityId, organizationId]
     );
+
+    return rows.length > 0;
+  }],
+
+  ["JOB", async (connection, entityId, organizationId) => {
+    const [rows] = await connection.execute(
+      `SELECT id
+       FROM jobs
+       WHERE id = ? AND organization_id = ?
+       LIMIT 1`,
+      [entityId, organizationId]
+    );
+
     return rows.length > 0;
   }],
 ]);
+
 
 async function assertEntityOwnership(connection, entityType, entityId, organizationId) {
   const ownershipCheck = entityOwnershipChecks.get(entityType);
@@ -67,7 +83,41 @@ export async function createApprovalRequest({ organizationId, workflowId, entity
       error.statusCode = 404;
       throw error;
     }
-    await assertEntityOwnership(connection, entityType, entityId, organizationId);
+    if (entityType === "JOB") {
+      const [jobs] = await connection.execute(
+        `SELECT id, status
+         FROM jobs
+         WHERE id = ? AND organization_id = ?
+         FOR UPDATE`,
+        [entityId, organizationId]
+      );
+      const job = jobs[0];
+      if (!job) {
+        const error = new Error("Approval entity not found in this organization");
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const [pendingRequests] = await connection.execute(
+        `SELECT id FROM approval_requests
+         WHERE organization_id = ? AND entity_type = 'JOB' AND entity_id = ? AND status = 'PENDING'
+         LIMIT 1`,
+        [organizationId, entityId]
+      );
+      if (pendingRequests.length) {
+        const error = new Error("A pending approval request already exists for this job");
+        error.statusCode = 409;
+        throw error;
+      }
+
+      if (job.status !== "DRAFT" && job.status !== "REJECTED") {
+        const error = new Error("Job cannot be submitted for approval from its current status");
+        error.statusCode = 409;
+        throw error;
+      }
+    } else {
+      await assertEntityOwnership(connection, entityType, entityId, organizationId);
+    }
     const [steps] = await connection.execute(
       `SELECT step_order FROM approval_workflow_steps
        WHERE approval_workflow_id = ? ORDER BY step_order ASC LIMIT 1`,
@@ -84,6 +134,18 @@ export async function createApprovalRequest({ organizationId, workflowId, entity
        VALUES (?, ?, ?, ?, ?, 'PENDING', ?)`,
       [workflowId, organizationId, entityType, entityId, steps[0].step_order, requestedBy]
     );
+    if (entityType === "JOB") {
+      const [jobUpdate] = await connection.execute(
+        `UPDATE jobs SET status = 'PENDING_APPROVAL'
+         WHERE id = ? AND organization_id = ? AND status IN ('DRAFT', 'REJECTED')`,
+        [entityId, organizationId]
+      );
+      if (!jobUpdate.affectedRows) {
+        const error = new Error("Job status changed before the approval request could be submitted");
+        error.statusCode = 409;
+        throw error;
+      }
+    }
     await connection.commit();
     return getApprovalRequest(result.insertId, organizationId);
   } catch (error) {
@@ -120,7 +182,7 @@ export async function decideApprovalRequest({ requestId, organizationId, userId,
   try {
     await connection.beginTransaction();
     const [requests] = await connection.execute(
-      `SELECT id, approval_workflow_id, current_step, status, requested_by
+      `SELECT id, approval_workflow_id, entity_type, entity_id, current_step, status, requested_by
        FROM approval_requests
        WHERE id = ? AND organization_id = ? FOR UPDATE`,
       [requestId, organizationId]
@@ -131,6 +193,7 @@ export async function decideApprovalRequest({ requestId, organizationId, userId,
       error.statusCode = 404;
       throw error;
     }
+    await assertEntityOwnership(connection, request.entity_type, request.entity_id, organizationId);
     if (request.status !== "PENDING") {
       const error = new Error("Approval request is already complete");
       error.statusCode = 409;
@@ -185,6 +248,13 @@ export async function decideApprovalRequest({ requestId, organizationId, userId,
          WHERE id = ? AND organization_id = ? AND status = 'PENDING'`,
         [requestId, organizationId]
       );
+      if (request.entity_type === "JOB") {
+        await connection.execute(
+          `UPDATE jobs SET status = 'REJECTED'
+           WHERE id = ? AND organization_id = ?`,
+          [request.entity_id, organizationId]
+        );
+      }
     } else {
       const [nextSteps] = await connection.execute(
         `SELECT step_order FROM approval_workflow_steps
@@ -203,6 +273,13 @@ export async function decideApprovalRequest({ requestId, organizationId, userId,
            WHERE id = ? AND organization_id = ? AND status = 'PENDING'`,
           [requestId, organizationId]
         );
+        if (request.entity_type === "JOB") {
+          await connection.execute(
+            `UPDATE jobs SET status = 'APPROVED'
+             WHERE id = ? AND organization_id = ?`,
+            [request.entity_id, organizationId]
+          );
+        }
       }
     }
     await connection.commit();
