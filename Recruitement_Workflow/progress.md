@@ -232,3 +232,423 @@ First, finish the Codex fix for `decision` and `decision_comments`. Then retry t
 **After that, we'll start Interview Management using the existing&#x20;**`interviews`**&#x20;table**, inspecting its schema first and avoiding unnecessary database changes.
 
 Our goal is a complete recruitment workflow SaaS, not just a candidate portal.
+
+// Nov 19 2026
+
+# **Recruitment Workflow Platform — Overall Progress**
+
+You've completed a major portion of the Recruitment Workflow Platform. The foundation, core recruitment lifecycle, and several role-based modules are implemented and have passed API testing.
+
+# **11 major modules**
+
+**Implemented or substantially completed**
+
+This is a development progress assessment, not a measured percentage of all planned product requirements.
+
+**Core backend and frontend**
+
+Established
+
+**Recruitment lifecycle**
+
+Core workflow tested
+
+**Demo data**
+
+Next priority
+
+## **1. Modules completed so far**
+
+| #  | Module                           | Progress                         |
+| -- | -------------------------------- | -------------------------------- |
+| 1  | Organization Management          | Implemented                      |
+| 2  | User Management                  | Implemented                      |
+| 3  | Roles & Permissions              | Implemented                      |
+| 4  | Requirement Management           | Implemented and tested           |
+| 5  | Generic Approval Engine          | Implemented and tested           |
+| 6  | JD Creation & Editing            | Implemented                      |
+| 7  | Hiring Manager JD Approval       | Implemented                      |
+| 8  | JD Publishing                    | Tested                           |
+| 9  | Public Job Listing & Details     | Tested                           |
+| 10 | Candidate Portal                 | Implemented and core APIs tested |
+| 11 | Recruiter Application Management | Implemented and APIs tested      |
+| 12 | Interview Management             | Implemented and APIs tested      |
+
+## **2. What we have actually tested**
+
+Verified through API testing
+
+**Requirement and approval**
+
+- Recruiter creates requirements.
+- Recruiter submits requirements for approval.
+- Hiring Manager approves or rejects.
+- Generic approval engine handles workflow steps.
+
+**Job Description**
+
+- Create JD from an approved requirement.
+- Edit JD.
+- Submit for approval.
+- Hiring Manager approval.
+- Publish approved job.
+- Public job listing and details.
+
+**Candidate**
+
+- Organization-specific candidate registration.
+- Candidate login.
+- Profile retrieval and updates.
+- Published jobs listing and details.
+- Apply for jobs.
+- My Applications.
+
+**Recruiter**
+
+- Application dashboard.
+- Application listing and filtering.
+- Candidate and job details.
+- Application stage changes.
+- Shortlisting and rejection endpoints implemented.
+- Comments handling corrected.
+
+**Interviewer**
+
+- Login and permissions.
+- Assigned interview listing.
+- Interview details.
+- Feedback submission.
+- Recruiter feedback visibility.
+- Rescheduling.
+- Cancellation.
+- Panel and feedback preservation.
+
+The latest Interview Management test was successful, including cancellation of interview ID `1`.
+
+## **3. Current technical architecture**
+
+**Frontend**
+
+React Native + Expo + Expo Router + React Native Web
+
+One application for web and mobile
+
+**Backend**
+
+Node.js + Express.js + REST APIs
+
+Authentication, permissions, tenant isolation, business logic
+
+**Database**
+
+MySQL — `recruitment_workflow`
+
+Organization-scoped recruitment records
+
+Important architecture decisions already implemented:
+
+- Multi-organization tenant isolation.
+- Candidate accounts are organization-specific.
+- Candidate and application are separate entities.
+- Management and candidate authentication are separate.
+- Generic approval engine is reused for requirements and jobs.
+- Interviews derive organization ownership through applications.
+- Existing database architecture is preserved.
+
+## **4. Role-wise progress**
+
+| Role               | Current capabilities                                          |
+| ------------------ | ------------------------------------------------------------- |
+| Platform Admin     | Organization dashboard and organization management foundation |
+| Organization Admin | User management, roles and permissions                        |
+| Recruiter          | Requirements, JD, publishing, applications and interviews     |
+| Hiring Manager     | Requirement and JD approvals                                  |
+| Interviewer        | Assigned interviews and feedback                              |
+| Candidate          | Registration, profile, jobs and applications                  |
+
+The role-based foundation is in place, but the overall UI experience and dashboards still need more complete validation.
+
+## **5. What remains to be done**
+
+I recommend the following development order.
+
+1. **Realistic DEMO data — next priority**
+
+   Populate all five organization-side and candidate experiences with linked DEMO records. Validate dashboard counts and data visibility.
+2. **Recruitment lifecycle completion**
+   - Assessment (if enabled)
+   - Interview completion
+   - Hiring Manager interview decision
+   - Selection and offer
+   - Offer acceptance
+   - Onboarding
+   - Ready to Join
+   - Hired
+3. **Dashboard and frontend validation**
+
+   Verify role-specific navigation, dashboard metrics, empty states, permissions and responsive layouts.
+4. **Notifications**
+
+   Application updates, approval requests, interview schedules, feedback and offer notifications.
+5. **Security and quality**
+
+   Tenant-isolation tests, authorization tests, input validation, error handling and regression testing.
+6. **Deployment readiness**
+
+   Environment configuration, production database, hosting, logging, monitoring and backups.
+
+## **6. My assessment**
+
+You're no longer at the initial project setup stage. You've built the main foundation and implemented most of the early-to-middle recruitment lifecycle.
+
+The biggest remaining gap is connecting all the modules into a complete end-to-end hiring experience and making the product look populated and operational for every role.
+
+**My recommendation:** Don't start another major feature yet. First complete the DEMO data initiative, validate every role's dashboard, and then continue with interview decisions through onboarding and hiring.
+
+That will give us a much clearer picture of the actual product readiness.
+
+
+------------------------------------
+Nov 20 2026
+
+
+# **Recruitment Workflow Platform — Development Progress**
+
+
+
+Development in progress
+
+&#x20;As of 20 November 2026
+
+
+
+We've built most of the core recruitment lifecycle. The platform is designed as a multi-tenant SaaS application where organizations manage their own recruitment activities.
+
+## **1. Project objective**
+
+**Product:** Recruitment Workflow Platform SaaS
+
+**Tagline:** Right Talent. Right Role. Right Time.
+
+The objective is to manage recruitment from requirement creation through successful candidate hiring.
+
+- Not a job portal.
+- Not an HRMS.
+- Not an employee portal.
+- No payroll, attendance or leave management.
+
+**Final lifecycle:** `REQUIREMENT → RECRUITMENT → OFFER → ONBOARDING → HIRED`
+
+## **2. Technology architecture**
+
+| Layer          | Technology                  |
+| -------------- | --------------------------- |
+| Frontend       | React Native + Expo         |
+| Web            | Expo Web / React Native Web |
+| Navigation     | Expo Router                 |
+| Backend        | Node.js + Express           |
+| Database       | MySQL                       |
+| API            | REST                        |
+| Authentication | JWT                         |
+| Architecture   | Multi-tenant SaaS           |
+
+One frontend codebase supports the different organization roles and candidate experience.
+
+## **3. Module development status**
+
+**Organization & User Management**
+
+Completed
+
+Organization management, organization-specific users and role-based access.
+
+**Roles & Permissions**
+
+Completed
+
+Platform Admin, Organization Admin, Recruiter, Hiring Manager and Interviewer permissions.
+
+**Requirement Management**
+
+Completed
+
+Recruiter creates requirements; Hiring Manager approves or rejects.
+
+**Generic Approval Engine**
+
+Completed
+
+Reusable approval workflows with steps, validation and approval history.
+
+**JD Creation & Approval**
+
+Completed
+
+Job description creation, editing, approval and publishing.
+
+**Public Job Listing**
+
+Completed
+
+Published job listing and job details APIs.
+
+**Candidate Portal**
+
+Completed
+
+Organization-specific registration, login, profile and job applications.
+
+**Recruiter Application Management**
+
+Completed
+
+Application dashboard, screening, shortlisting, rejection and history.
+
+**Interview Management**
+
+Completed
+
+Scheduling, interviewer assignment, feedback, rescheduling and completion.
+
+**Hiring Manager Review**
+
+Completed
+
+Review queue, interview feedback and SELECTED/REJECTED decisions.
+
+**Offer Management**
+
+Completed
+
+Offer creation, approval, issuance, candidate acceptance and rejection.
+
+**Onboarding Management**
+
+Implemented; UI polish pending
+
+Onboarding initiation, tasks, candidate document uploads, HR document verification and completion.
+
+**Final Hiring Confirmation**
+
+In progress
+
+Final joining confirmation, application transition to HIRED and transaction-safe history updates.
+
+## **4. Current demo organization and test data**
+
+**Organization: yousta**
+
+Organization ID: 8 · Slug: you-sta
+
+| Entity             | Demo data             |
+| ------------------ | --------------------- |
+| Organization Admin | User 8                |
+| Hiring Manager     | User 9                |
+| Recruiter          | User 10               |
+| Interviewer        | User 11               |
+| Published jobs     | 3                     |
+| Candidates         | 6                     |
+| Applications       | 6 active/demo records |
+| Interviews         | 3                     |
+| Offers             | 1                     |
+| Onboarding records | 1                     |
+
+### **Important end-to-end test record**
+
+| Entity          | Record       | Status      |
+| --------------- | ------------ | ----------- |
+| Candidate       | Priya Sharma | Active      |
+| Application     | #5           | SHORTLISTED |
+| Hiring decision | SELECTED     | Confirmed   |
+| Offer           | #1           | ACCEPTED    |
+| Onboarding      | #1           | COMPLETED   |
+
+This is our existing test case for final hiring confirmation. The application should become `HIRED` only when the final confirmation is successfully executed.
+
+## **5. Database progress**
+
+Manually configured database structures include:
+
+- Organization-scoped users, roles and permissions.
+- Requirements, jobs and applications.
+- Generic approval engine tables.
+- Offers.
+- Onboarding records and tasks.
+- Candidate documents with review information.
+- Employees table was created during the recent exploration, but **will remain unused** because we decided not to expand into HRMS.
+
+Recent permissions configured for organization 8:
+
+| Permission          | ID |
+| ------------------- | -- |
+| onboarding.complete | 33 |
+| employee.view       | 34 |
+| employee.manage     | 35 |
+
+The employee permissions and table are not part of our intended product functionality.
+
+## **6. What is left?**
+
+I recommend this order:
+
+1. **Finish Final Hiring Confirmation**
+
+   Remove employee-management functionality from the latest Codex changes and complete the HIRED transition.
+2. **Test the entire recruitment lifecycle**
+
+   Verify the candidate journey from application through offer acceptance and hiring.
+3. **Frontend improvement phase**
+
+   Improve dynamic dashboard counts, navigation, role-based menus, loading states and empty states.
+4. **Demo data completion**
+
+   Ensure every role has realistic, connected records and useful dashboard information.
+5. **Security and tenant-isolation testing**
+
+   Test organization boundaries, permission enforcement, API validation and candidate access.
+6. **Production readiness**
+
+   Review deployment configuration, durable document storage, logging, error handling and performance.
+
+## **7. Overall progress**
+
+# **12 / 13**
+
+**Core modules implemented or completed**
+
+This is a module-count estimate, not a production-readiness percentage. Final hiring still needs implementation cleanup and end-to-end verification.
+
+**My recommendation:** Finish the final hiring transaction next. After that, stop adding major modules and focus on making the existing platform consistent, dynamic, secure and professional.
+
+We have a strong foundation. The priority now is completing and polishing the recruitment product—not expanding its scope.
+
+
+----------------
+Great! Let's move into **Phase 2: Frontend Polish & Product Quality**.
+
+We'll focus on improving the existing modules without changing the product direction or adding unnecessary modules.
+
+### **Our improvement roadmap**
+
+| Priority | Area            | Improvements                                                          |
+| -------- | --------------- | --------------------------------------------------------------------- |
+| 1        | Dashboard       | Dynamic counts, recent activity, status summaries                     |
+| 2        | Navigation      | Role-based menus, consistent navigation, breadcrumbs and back actions |
+| 3        | Onboarding      | Dynamic task/document status, better details and navigation           |
+| 4        | UI consistency  | Common layouts, cards, tables, forms and status badges                |
+| 5        | User experience | Loading, empty, error and success states                              |
+| 6        | Quality         | Responsive web/mobile layouts and end-to-end role testing             |
+
+### **How we'll work**
+
+- Inspect the existing implementation first.
+- Batch related frontend changes through Codex.
+- Avoid changing working backend APIs unless a genuine issue is found.
+- Preserve existing permissions and tenant isolation.
+- Test each completed improvement before moving forward.
+
+**Let's start with Priority 1 — Dashboard improvements.**
+
+First, ask Codex to inspect all existing dashboards and report their current widgets, API integrations, static/mock data, missing dynamic counts and UI inconsistencies. Don't ask it to modify anything yet.
+
+Once you share its report, we'll prepare one focused implementation prompt.

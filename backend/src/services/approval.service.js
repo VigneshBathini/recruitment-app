@@ -27,7 +27,7 @@ function requiredEntityType(value) {
   return value.trim();
 }
 
-async function requireJobPermission(user, permissionNames) {
+async function requirePermission(user, permissionNames) {
   const permissions = await getPermissionsByRoleId(user.organization_id, user.role_id);
   const requiredPermissions = Array.isArray(permissionNames) ? permissionNames : [permissionNames];
   if (!permissions.some((permission) => requiredPermissions.includes(permission.name))) {
@@ -35,9 +35,20 @@ async function requireJobPermission(user, permissionNames) {
   }
 }
 
+const entityPermissions = {
+  JOB: { workflow: "job.manage", submit: "job.manage", view: ["job.view", "job.manage", "job.approve"], decide: "job.approve" },
+  OFFER: { workflow: "offer.manage", submit: "offer.manage", view: ["offer.view", "offer.manage", "offer.approve"], decide: "offer.approve" },
+};
+
+function requireEntityPermission(entityType, action, user) {
+  const permission = entityPermissions[entityType]?.[action];
+  if (!permission) return Promise.resolve();
+  return requirePermission(user, permission);
+}
+
 export async function getApprovalWorkflowsService(entityType, user) {
   const normalizedEntityType = requiredEntityType(entityType);
-  if (normalizedEntityType === "JOB") await requireJobPermission(user, "job.manage");
+  await requireEntityPermission(normalizedEntityType, "workflow", user);
   return getApprovalWorkflows(user.organization_id, normalizedEntityType);
 }
 
@@ -45,7 +56,7 @@ export async function submitApprovalRequestService(data, user) {
   const workflowId = requiredId(data.workflow_id, "workflow_id");
   const entityId = requiredId(data.entity_id, "entity_id");
   const entityType = requiredEntityType(data.entity_type);
-  if (entityType === "JOB") await requireJobPermission(user, "job.manage");
+  await requireEntityPermission(entityType, "submit", user);
   return createApprovalRequest({
     organizationId: user.organization_id,
     workflowId,
@@ -58,9 +69,7 @@ export async function submitApprovalRequestService(data, user) {
 export async function getApprovalRequestService(id, user) {
   const request = await getApprovalRequest(requiredId(id, "request id"), user.organization_id);
   if (!request) throw createError("Approval request not found", 404);
-  if (request.entity_type === "JOB") {
-    await requireJobPermission(user, ["job.view", "job.manage", "job.approve"]);
-  }
+  await requireEntityPermission(request.entity_type, "view", user);
   return request;
 }
 
@@ -73,7 +82,7 @@ export async function decideApprovalRequestService(id, data, user, decision) {
   if (comments && comments.length > 5000) throw createError("Comments cannot exceed 5000 characters", 400);
   const request = await getApprovalRequest(requiredId(id, "request id"), user.organization_id);
   if (!request) throw createError("Approval request not found", 404);
-  if (request.entity_type === "JOB") await requireJobPermission(user, "job.approve");
+  await requireEntityPermission(request.entity_type, "decide", user);
   return decideApprovalRequest({
     requestId: request.id,
     organizationId: user.organization_id,

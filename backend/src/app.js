@@ -19,6 +19,9 @@ import publicJobRoutes from "./routes/publicJob.routes.js";
 import candidateAuthRoutes from "./routes/candidateAuth.routes.js";
 import candidateRoutes from "./routes/candidate.routes.js";
 import applicationRoutes from "./routes/application.routes.js";
+import interviewRoutes from "./routes/interview.routes.js";
+import offerRoutes from "./routes/offer.routes.js";
+import onboardingRoutes from "./routes/onboarding.routes.js";
 
 const app = express();
 
@@ -65,6 +68,9 @@ app.use("/api/public", publicJobRoutes);
 app.use("/api/candidate-auth", candidateAuthRoutes);
 app.use("/api/candidates", candidateRoutes);
 app.use("/api/applications", applicationRoutes);
+app.use("/api/interviews", interviewRoutes);
+app.use("/api/offers", offerRoutes);
+app.use("/api/onboarding", onboardingRoutes);
 app.use("/api/jobs", jobDescriptionRoutes);
 
 const PORT = process.env.PORT || 5000;

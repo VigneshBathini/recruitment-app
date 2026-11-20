@@ -1,2 +1,7 @@
-import { RoleDashboard } from '@/components/role-dashboard';
-export default function InterviewerDashboard() { return <RoleDashboard role="Interviewer" />; }
+import { useCallback,useState } from 'react';
+import { ActivityIndicator,Pressable,ScrollView,StyleSheet,Text,View } from 'react-native';
+import { router,useFocusEffect } from 'expo-router';
+import { getInterviews,type Interview } from '@/services/interview-management.service';
+import { useTheme } from '@/hooks/use-theme';
+export default function InterviewerDashboard(){const t=useTheme();const [rows,setRows]=useState<Interview[]>([]);const [loading,setLoading]=useState(true);const [error,setError]=useState('');const load=useCallback(async()=>{try{setRows(await getInterviews())}catch{setError('Unable to load assigned interviews.')}finally{setLoading(false)}},[]);useFocusEffect(useCallback(()=>{void load()},[load]));return <ScrollView contentContainerStyle={[s.page,{backgroundColor:t.background}]}><Text style={[s.title,{color:t.text}]}>My interviews</Text><Text style={{color:t.textSecondary}}>Interviews assigned to you.</Text>{loading?<ActivityIndicator color={t.primary}/>:error?<Text style={{color:'#B42318'}}>{error}</Text>:rows.length?rows.map(i=><Pressable key={i.id} onPress={()=>router.push({pathname:'/interview-details',params:{id:String(i.id)}} as never)} style={[s.card,{borderColor:t.border,backgroundColor:t.backgroundElement}]}><Text style={{color:t.text,fontWeight:'700'}}>{i.title}</Text><Text style={{color:t.textSecondary}}>{i.candidate_first_name} {i.candidate_last_name??''} · {i.job_title}</Text><Text style={{color:t.textSecondary}}>{new Date(i.scheduled_at).toLocaleString()} · {i.status}</Text></Pressable>):<View><Text style={{color:t.textSecondary}}>No interviews are assigned to you.</Text></View>}</ScrollView>}
+const s=StyleSheet.create({page:{padding:22,gap:14,flexGrow:1},title:{fontSize:28,fontWeight:'800'},card:{borderWidth:1,borderRadius:14,padding:16,gap:6}});

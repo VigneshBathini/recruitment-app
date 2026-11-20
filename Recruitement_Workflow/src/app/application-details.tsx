@@ -88,7 +88,7 @@ export default function ApplicationDetailsScreen() {
             {application.decision ? <View style={[styles.commentBox, { borderColor: theme.border }]}><Text style={[styles.text, { color: theme.textSecondary }]}>Decision</Text><Text style={[styles.text, { color: theme.text }]}>{label(application.decision)}</Text></View> : null}
             {application.decision_comments ? <View style={[styles.commentBox, { borderColor: theme.border }]}><Text style={[styles.text, { color: theme.textSecondary }]}>Decision comments</Text><Text style={[styles.text, { color: theme.text }]}>{application.decision_comments}</Text></View> : null}
           </View>
-          {canManage && !['SHORTLISTED', 'REJECTED'].includes(application.status) ? <View style={[styles.card, card]}>
+          {canManage && !['SHORTLISTED', 'REJECTED', 'HIRED'].includes(application.status) ? <View style={[styles.card, card]}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Recruiter actions</Text>
             <Text style={[styles.text, { color: theme.textSecondary }]}>Move through screening stages</Text>
             <View style={styles.stageList}>{stageOptions.map((stage) => <Pressable key={stage} accessibilityRole="button" disabled={saving} onPress={() => void perform('stage', stage)} style={[styles.stageButton, { borderColor: theme.border, backgroundColor: application.current_stage === stage ? theme.primaryMuted : theme.backgroundElement }]}><Text style={{ color: application.current_stage === stage ? theme.primary : theme.text }}>{label(stage)}</Text></Pressable>)}</View>

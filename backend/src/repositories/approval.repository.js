@@ -25,6 +25,14 @@ const entityOwnershipChecks = new Map([
 
     return rows.length > 0;
   }],
+
+  ["OFFER", async (connection, entityId, organizationId) => {
+    const [rows] = await connection.execute(
+      `SELECT id FROM offers WHERE id = ? AND organization_id = ? LIMIT 1`,
+      [entityId, organizationId]
+    );
+    return rows.length > 0;
+  }],
 ]);
 
 
@@ -115,6 +123,33 @@ export async function createApprovalRequest({ organizationId, workflowId, entity
         error.statusCode = 409;
         throw error;
       }
+    } else if (entityType === "OFFER") {
+      const [offers] = await connection.execute(
+        `SELECT id, status FROM offers WHERE id = ? AND organization_id = ? FOR UPDATE`,
+        [entityId, organizationId]
+      );
+      const offer = offers[0];
+      if (!offer) {
+        const error = new Error("Approval entity not found in this organization");
+        error.statusCode = 404;
+        throw error;
+      }
+      if (!["DRAFT", "REJECTED"].includes(offer.status)) {
+        const error = new Error("Offer cannot be submitted for approval from its current status");
+        error.statusCode = 409;
+        throw error;
+      }
+      const [pendingRequests] = await connection.execute(
+        `SELECT id FROM approval_requests
+         WHERE organization_id = ? AND entity_type = 'OFFER' AND entity_id = ? AND status = 'PENDING'
+         LIMIT 1`,
+        [organizationId, entityId]
+      );
+      if (pendingRequests.length) {
+        const error = new Error("A pending approval request already exists for this offer");
+        error.statusCode = 409;
+        throw error;
+      }
     } else {
       await assertEntityOwnership(connection, entityType, entityId, organizationId);
     }
@@ -142,6 +177,17 @@ export async function createApprovalRequest({ organizationId, workflowId, entity
       );
       if (!jobUpdate.affectedRows) {
         const error = new Error("Job status changed before the approval request could be submitted");
+        error.statusCode = 409;
+        throw error;
+      }
+    } else if (entityType === "OFFER") {
+      const [offerUpdate] = await connection.execute(
+        `UPDATE offers SET status = 'PENDING_APPROVAL'
+         WHERE id = ? AND organization_id = ? AND status IN ('DRAFT', 'REJECTED')`,
+        [entityId, organizationId]
+      );
+      if (!offerUpdate.affectedRows) {
+        const error = new Error("Offer status changed before approval submission");
         error.statusCode = 409;
         throw error;
       }
@@ -194,6 +240,22 @@ export async function decideApprovalRequest({ requestId, organizationId, userId,
       throw error;
     }
     await assertEntityOwnership(connection, request.entity_type, request.entity_id, organizationId);
+    if (request.entity_type === "OFFER") {
+      const [offers] = await connection.execute(
+        `SELECT id, status FROM offers WHERE id = ? AND organization_id = ? FOR UPDATE`,
+        [request.entity_id, organizationId]
+      );
+      if (!offers[0]) {
+        const error = new Error("Offer not found in this organization");
+        error.statusCode = 404;
+        throw error;
+      }
+      if (offers[0].status !== "PENDING_APPROVAL") {
+        const error = new Error("Offer is not pending approval");
+        error.statusCode = 409;
+        throw error;
+      }
+    }
     if (request.status !== "PENDING") {
       const error = new Error("Approval request is already complete");
       error.statusCode = 409;
@@ -254,6 +316,17 @@ export async function decideApprovalRequest({ requestId, organizationId, userId,
            WHERE id = ? AND organization_id = ?`,
           [request.entity_id, organizationId]
         );
+      } else if (request.entity_type === "OFFER") {
+        const [offerUpdate] = await connection.execute(
+          `UPDATE offers SET status = 'REJECTED'
+           WHERE id = ? AND organization_id = ? AND status = 'PENDING_APPROVAL'`,
+          [request.entity_id, organizationId]
+        );
+        if (!offerUpdate.affectedRows) {
+          const error = new Error("Offer status changed before the rejection could be recorded");
+          error.statusCode = 409;
+          throw error;
+        }
       }
     } else {
       const [nextSteps] = await connection.execute(
@@ -279,6 +352,17 @@ export async function decideApprovalRequest({ requestId, organizationId, userId,
              WHERE id = ? AND organization_id = ?`,
             [request.entity_id, organizationId]
           );
+        } else if (request.entity_type === "OFFER") {
+          const [offerUpdate] = await connection.execute(
+            `UPDATE offers SET status = 'APPROVED'
+             WHERE id = ? AND organization_id = ? AND status = 'PENDING_APPROVAL'`,
+            [request.entity_id, organizationId]
+          );
+          if (!offerUpdate.affectedRows) {
+            const error = new Error("Offer status changed before approval could be completed");
+            error.statusCode = 409;
+            throw error;
+          }
         }
       }
     }

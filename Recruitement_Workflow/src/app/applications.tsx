@@ -5,7 +5,7 @@ import { isAxiosError } from 'axios';
 import { useTheme } from '@/hooks/use-theme';
 import { getApplicationCounts, getApplications, type ApplicationCounts, type ApplicationFilters, type ApplicationPage } from '@/services/application-management.service';
 
-const statuses = ['ALL', 'APPLIED', 'SCREENING', 'SHORTLISTED', 'REJECTED'];
+const statuses = ['ALL', 'APPLIED', 'SCREENING', 'SHORTLISTED', 'REJECTED', 'HIRED'];
 const stages = ['ALL', 'SCREENING', 'PHONE_SCREEN', 'TECHNICAL_INTERVIEW', 'HR_INTERVIEW', 'OFFER'];
 const label = (value: string) => value.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
 
@@ -53,7 +53,7 @@ export default function ApplicationsScreen() {
           <Pressable accessibilityRole="button" onPress={() => router.back()} style={[styles.outlineButton, { borderColor: theme.border }]}><Text style={{ color: theme.text }}>Back</Text></Pressable>
         </View>
         <View style={styles.stats}>
-          {([['Total', counts?.total], ['New', counts?.new], ['Screening', counts?.screening], ['Shortlisted', counts?.shortlisted]] as const).map(([name, value]) => (
+          {([['Total', counts?.total], ['New', counts?.new], ['Screening', counts?.screening], ['Shortlisted', counts?.shortlisted], ['Hired', counts?.hired]] as const).map(([name, value]) => (
             <View key={name} style={[styles.stat, cardStyle]}><Text style={[styles.statValue, { color: theme.primary }]}>{loading ? '…' : value ?? 0}</Text><Text style={[styles.statLabel, { color: theme.textSecondary }]}>{name}</Text></View>
           ))}
         </View>

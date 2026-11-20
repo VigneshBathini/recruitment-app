@@ -1,6 +1,9 @@
 import {
   getApplicationDashboardService,
   getApplicationDetailsService,
+  getApplicationReviewQueueService,
+  getApplicationReviewDetailsService,
+  decideOnApplicationService,
   listApplicationsService,
   moveApplicationToStageService,
   rejectApplicationService,
@@ -31,6 +34,28 @@ export async function getApplicationDetailsController(req, res, next) {
     const data = await getApplicationDetailsService(req.params.id, req.user.organization_id);
     return res.status(200).json({ success: true, data });
   } catch (error) { return sendError(error, res, next); }
+}
+
+export async function getApplicationReviewQueueController(req, res, next) {
+  try { return res.status(200).json({ success: true, data: await getApplicationReviewQueueService(req.user) }); }
+  catch (error) { return sendError(error, res, next); }
+}
+
+export async function getApplicationReviewDetailsController(req, res, next) {
+  try { return res.status(200).json({ success: true, data: await getApplicationReviewDetailsService(req.params.id, req.user) }); }
+  catch (error) { return sendError(error, res, next); }
+}
+
+export async function decideOnApplicationController(req, res, next) {
+  try { return res.status(200).json({ success: true, message: "Application decision recorded", data: await decideOnApplicationService(req.params.id, req.body, req.user) }); }
+  catch (error) { return sendError(error, res, next); }
+}
+
+export function validateDecisionBody(req, res, next) {
+  if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) return res.status(400).json({ success: false, message: "Request body must be an object" });
+  if (req.body.decision !== undefined && typeof req.body.decision !== "string") return res.status(400).json({ success: false, message: "decision must be a string" });
+  if (req.body.comments !== undefined && typeof req.body.comments !== "string") return res.status(400).json({ success: false, message: "comments must be a string" });
+  return next();
 }
 
 function validateProgressBody(req, res, next) {

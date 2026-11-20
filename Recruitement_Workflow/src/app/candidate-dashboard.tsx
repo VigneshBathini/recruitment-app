@@ -61,6 +61,12 @@ export default function CandidateDashboardScreen() {
             <Pressable accessibilityRole="button" onPress={() => router.push('/candidate-applications')} style={[styles.applicationsButton, { borderColor: theme.border }]}>
               <Text style={[styles.applicationsButtonText, { color: theme.text }]}>My applications</Text>
             </Pressable>
+            <Pressable accessibilityRole="button" onPress={() => router.push('/candidate-offers')} style={[styles.applicationsButton, { borderColor: theme.border }]}>
+              <Text style={[styles.applicationsButtonText, { color: theme.text }]}>My offers</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={() => router.push('/candidate-onboarding')} style={[styles.applicationsButton, { borderColor: theme.border }]}>
+              <Text style={[styles.applicationsButtonText, { color: theme.text }]}>My onboarding</Text>
+            </Pressable>
           </View>
         ) : null}
       </View>

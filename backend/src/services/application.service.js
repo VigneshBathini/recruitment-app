@@ -1,6 +1,9 @@
 import {
   getApplicationDashboardCounts,
   getApplicationDetails,
+  getApplicationReviewDetails,
+  listApplicationReviewQueue,
+  decideOnApplication,
   listApplications,
   updateApplicationProgress,
 } from "../repositories/application.repository.js";
@@ -27,7 +30,7 @@ export function parseApplicationListQuery(query) {
   const search = query.search ? String(query.search).trim().slice(0, 150) : undefined;
   if (!Number.isSafeInteger(page) || page < 1) throw serviceError("page must be a positive integer", 400);
   if (!Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 100) throw serviceError("page_size must be between 1 and 100", 400);
-  if (status && !["APPLIED", "SCREENING", "SHORTLISTED", "REJECTED"].includes(status)) throw serviceError("Unsupported application status filter", 400);
+  if (status && !["APPLIED", "SCREENING", "SHORTLISTED", "REJECTED", "HIRED"].includes(status)) throw serviceError("Unsupported application status filter", 400);
   if (stage && !stages.has(stage)) throw serviceError("Unsupported screening stage filter", 400);
   return { page, pageSize, status, stage, search, offset: (page - 1) * pageSize };
 }
@@ -49,6 +52,35 @@ export async function listApplicationsService(organizationId, query) {
 
 export async function getApplicationDetailsService(idValue, organizationId) {
   const application = await getApplicationDetails(parseId(idValue), organizationId);
+  if (!application) throw serviceError("Application not found", 404);
+  return application;
+}
+
+function requireHiringManager(user) {
+  if (Number(user.role_id) !== 3) throw serviceError("Hiring Manager role is required", 403);
+}
+
+export async function getApplicationReviewQueueService(user) {
+  requireHiringManager(user);
+  return listApplicationReviewQueue(user.organization_id);
+}
+
+export async function getApplicationReviewDetailsService(idValue, user) {
+  requireHiringManager(user);
+  const application = await getApplicationReviewDetails(parseId(idValue), user.organization_id);
+  if (!application) throw serviceError("Application not found", 404);
+  if (!application.completed_interviews.length) throw serviceError("A completed interview is required before review", 409);
+  return application;
+}
+
+export async function decideOnApplicationService(idValue, data, user) {
+  requireHiringManager(user);
+  const decision = typeof data.decision === "string" ? data.decision.trim().toUpperCase() : "";
+  if (!["SELECTED", "REJECTED"].includes(decision)) throw serviceError("decision must be SELECTED or REJECTED", 400);
+  const comments = typeof data.comments === "string" ? data.comments.trim() : "";
+  if (!comments) throw serviceError("A nonempty decision comment is required", 400);
+  if (comments.length > 5000) throw serviceError("Comments cannot exceed 5000 characters", 400);
+  const application = await decideOnApplication({ applicationId: parseId(idValue), organizationId: user.organization_id, userId: user.id, decision, comments });
   if (!application) throw serviceError("Application not found", 404);
   return application;
 }

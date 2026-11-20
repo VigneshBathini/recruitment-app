@@ -1,0 +1,8 @@
+import api from '@/services/api';
+export type Interview = { id:number; application_id:number; interview_type:string; title:string; scheduled_at:string; duration_minutes:number; meeting_url:string|null; location:string|null; status:string; candidate_first_name:string; candidate_last_name:string|null; job_title:string; panel_members:{id:number;first_name:string;last_name:string|null;email:string}[]; feedback:{id:number;interviewer_id:number;rating:number;recommendation:string;strengths:string|null;weaknesses:string|null;comments:string|null}[] };
+export async function getInterviews(){const r=await api.get<{data:Interview[]}>('/interviews');return r.data.data;}
+export async function getInterview(id:number){const r=await api.get<{data:Interview}>(`/interviews/${id}`);return r.data.data;}
+export async function scheduleInterview(input:{application_id:number;interview_type:string;title:string;scheduled_at:string;duration_minutes:number;meeting_url?:string;location?:string;panel_member_ids:number[]}){const r=await api.post<{data:Interview}>('/interviews',input);return r.data.data;}
+export async function updateInterview(id:number,input:Partial<Pick<Interview,'interview_type'|'title'|'scheduled_at'|'duration_minutes'|'meeting_url'|'location'|'status'>>){const r=await api.patch<{data:Interview}>(`/interviews/${id}`,input);return r.data.data;}
+export async function completeInterview(id:number){const r=await api.post<{data:Interview}>(`/interviews/${id}/complete`);return r.data.data;}
+export async function sendInterviewFeedback(id:number,input:{rating:number;recommendation:string;strengths:string;weaknesses:string;comments:string}){const r=await api.post<{data:Interview}>(`/interviews/${id}/feedback`,input);return r.data.data;}

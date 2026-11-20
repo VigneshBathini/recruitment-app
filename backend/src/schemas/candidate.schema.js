@@ -35,3 +35,7 @@ export const candidateProfileUpdateSchema = z.object({
 export const candidateApplicationSchema = z.object({
   job_id: z.coerce.number().int().positive().safe(),
 });
+
+export const candidateOfferResponseSchema = z.object({
+  comments: z.string().trim().max(5000).optional().nullable(),
+}).strict();

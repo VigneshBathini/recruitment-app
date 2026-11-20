@@ -1,0 +1,12 @@
+import { Router } from "express";
+import { authenticateManagementToken } from "../middleware/authenticateManagementToken.middleware.js";
+import { authorizeManagementPermission } from "../middleware/authorizeManagementPermission.middleware.js";
+import { completeInterviewController,createInterviewController,getInterviewController,listInterviewsController,submitFeedbackController,updateInterviewController } from "../controllers/interview.controller.js";
+const router=Router();router.use(authenticateManagementToken);
+router.get("/",authorizeManagementPermission("interview.view"),listInterviewsController);
+router.get("/:id",authorizeManagementPermission("interview.view"),getInterviewController);
+router.post("/",authorizeManagementPermission("interview.manage"),createInterviewController);
+router.patch("/:id",authorizeManagementPermission("interview.manage"),updateInterviewController);
+router.post("/:id/complete",authorizeManagementPermission(["interview.manage","interview.feedback"]),completeInterviewController);
+router.post("/:id/feedback",authorizeManagementPermission("interview.feedback"),submitFeedbackController);
+export default router;

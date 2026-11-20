@@ -69,7 +69,7 @@ export default function RootLayout() {
         if (pathname.startsWith('/candidate-')) {
           const candidateToken = await getCandidateToken();
           if (!active) return;
-          if (['/candidate-dashboard', '/candidate-jobs', '/candidate-job-details', '/candidate-applications'].includes(pathname)) {
+          if (['/candidate-dashboard', '/candidate-jobs', '/candidate-job-details', '/candidate-applications', '/candidate-offers', '/candidate-offer-details', '/candidate-onboarding', '/candidate-onboarding-details'].includes(pathname)) {
             if (!candidateToken) router.replace('/candidate-login');
             return;
           }
@@ -103,6 +103,9 @@ export default function RootLayout() {
   '/requirements',
   '/create-requirement',
 ];
+        const interviewRoutes = ['/interviews', '/interview-details'];
+        const applicationReviewRoutes = ['/application-review', '/application-review-details'];
+        const onboardingRoutes = ['/onboarding', '/onboarding-details'];
         if (accountType === 'platform_admin') {
           if (pathname === '/' || pathname === '/explore' || roleDashboardRoutes.includes(pathname)) {
             router.replace('/platform-admin');
@@ -147,6 +150,23 @@ if (requirementRoutes.includes(pathname)) {
     router.replace('/requirements');
   }
 }
+
+if (interviewRoutes.includes(pathname) || pathname === '/interviewer-dashboard') {
+  const permissions = organization.permissions ?? [];
+  const canInterview = permissions.includes('interview.view') || permissions.includes('interview.manage') || permissions.includes('interview.feedback');
+  if (!canInterview) router.replace('/explore');
+}
+
+if (applicationReviewRoutes.includes(pathname)) {
+  const permissions = organization.permissions ?? [];
+  if (!permissions.includes('application.review') || organization.role_name !== 'Hiring Manager') router.replace('/explore');
+}
+
+if (onboardingRoutes.includes(pathname)) {
+  const permissions = organization.permissions ?? [];
+  const canOnboard = permissions.includes('onboarding.view') || permissions.includes('onboarding.manage') || permissions.includes('onboarding.document.review') || permissions.includes('onboarding.complete');
+  if (!canOnboard) router.replace('/explore');
+}
       } catch {
         void logoutUser();
         if (active) router.replace('/login');
@@ -190,12 +210,22 @@ if (requirementRoutes.includes(pathname)) {
         <Stack.Screen name="candidate-jobs" options={{ headerShown: false }} />
         <Stack.Screen name="candidate-job-details" options={{ headerShown: false }} />
         <Stack.Screen name="candidate-applications" options={{ headerShown: false }} />
+        <Stack.Screen name="candidate-offers" options={{ headerShown: false }} />
+        <Stack.Screen name="candidate-offer-details" options={{ headerShown: false }} />
+        <Stack.Screen name="candidate-onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="candidate-onboarding-details" options={{ headerShown: false }} />
         <Stack.Screen name="applications" options={{ headerShown: false }} />
         <Stack.Screen name="application-details" options={{ headerShown: false }} />
+        <Stack.Screen name="application-review" options={{ title: 'Application Review' }} />
+        <Stack.Screen name="application-review-details" options={{ title: 'Application Review' }} />
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="recruiter-dashboard" options={{ headerShown: false }} />
         <Stack.Screen name="hiring-manager-dashboard" options={{ headerShown: false }} />
         <Stack.Screen name="interviewer-dashboard" options={{ headerShown: false }} />
+        <Stack.Screen name="interviews" options={{ title: 'Interview Management' }} />
+        <Stack.Screen name="interview-details" options={{ title: 'Interview Details' }} />
+        <Stack.Screen name="onboarding" options={{ title: 'Onboarding Management' }} />
+        <Stack.Screen name="onboarding-details" options={{ title: 'Onboarding Details' }} />
         <Stack.Screen name="module" options={{ title: 'Recruitment module' }} />
         <Stack.Screen
           name="create-organization"

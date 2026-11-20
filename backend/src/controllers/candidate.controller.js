@@ -7,10 +7,16 @@ import {
   updateCandidateProfileService,
 } from "../services/candidate.service.js";
 import {
+  getMyOfferService,
+  listMyOffersService,
+  respondToMyOfferService,
+} from "../services/candidate-offer.service.js";
+import {
   candidateApplicationSchema,
   candidateLoginSchema,
   candidateProfileUpdateSchema,
   candidateRegistrationSchema,
+  candidateOfferResponseSchema,
 } from "../schemas/candidate.schema.js";
 
 function sendError(error, res, next) {
@@ -75,4 +81,35 @@ export async function getCandidateApplicationsController(req, res, next) {
     const applications = await getCandidateApplicationsService(req.candidate.id, req.candidate.organization_id);
     return res.status(200).json({ success: true, data: applications });
   } catch (error) { return sendError(error, res, next); }
+}
+
+export async function getCandidateOffersController(req, res, next) {
+  try {
+    const offers = await listMyOffersService(req.candidate);
+    return res.status(200).json({ success: true, data: offers });
+  } catch (error) { return sendError(error, res, next); }
+}
+
+export async function getCandidateOfferController(req, res, next) {
+  try {
+    const offer = await getMyOfferService(req.params.id, req.candidate);
+    return res.status(200).json({ success: true, data: offer });
+  } catch (error) { return sendError(error, res, next); }
+}
+
+async function respondToCandidateOfferController(req, res, next, status, message) {
+  const data = validate(candidateOfferResponseSchema, req.body ?? {}, res);
+  if (!data) return;
+  try {
+    const offer = await respondToMyOfferService(req.params.id, req.candidate, status, data.comments);
+    return res.status(200).json({ success: true, message, data: offer });
+  } catch (error) { return sendError(error, res, next); }
+}
+
+export async function acceptCandidateOfferController(req, res, next) {
+  return respondToCandidateOfferController(req, res, next, "ACCEPTED", "Offer accepted");
+}
+
+export async function declineCandidateOfferController(req, res, next) {
+  return respondToCandidateOfferController(req, res, next, "DECLINED", "Offer declined");
 }
