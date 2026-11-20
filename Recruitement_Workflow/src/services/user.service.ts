@@ -12,6 +12,8 @@ export type User = {
   last_name: string | null;
   email: string;
   is_active: number;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type CreateUserInput = {

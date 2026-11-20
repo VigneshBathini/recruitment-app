@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import {
   ActivityIndicator,
@@ -9,12 +9,27 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import axios from 'axios';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { logoutUser } from '@/services/auth.service';
+import { getCurrentOrganizationUser, logoutUser } from '@/services/auth.service';
+import { getUsers, type User } from '@/services/user.service';
+import { getDepartments } from '@/services/departments';
+import api from '@/services/api';
+
+type OrganizationRole = { id: number; name: string; description: string | null; permission_count: number | string };
+type ApiResponse<T> = { success: boolean; data: T; message?: string };
+type DashboardSummary = {
+  totalUsers: number;
+  activeUsers: number;
+  totalDepartments: number;
+  totalRoles: number;
+  permissionGrants: number;
+  recentUsers: User[];
+};
 
 const modules = [
   {
@@ -44,7 +59,42 @@ export default function HomeScreen() {
   const theme = useTheme();
   const { width } = useWindowDimensions();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const isWide = width >= 720;
+
+  const loadDashboard = useCallback(async () => {
+    setLoading(true);
+    setLoadError('');
+    try {
+      const organization = await getCurrentOrganizationUser();
+      const organizationId = organization.id;
+      const [users, departments, rolesResponse] = await Promise.all([
+        getUsers(organizationId),
+        getDepartments(organizationId),
+        api.get<ApiResponse<OrganizationRole[]>>(`/roles?organizationId=${organizationId}`),
+      ]);
+      const roles = rolesResponse.data.data;
+      setSummary({
+        totalUsers: users.length,
+        activeUsers: users.filter((user) => user.is_active === 1).length,
+        totalDepartments: departments.length,
+        totalRoles: roles.length,
+        permissionGrants: roles.reduce((total, role) => total + Number(role.permission_count), 0),
+        recentUsers: users.slice(0, 5),
+      });
+    } catch (error) {
+      const message = axios.isAxiosError<{ message?: string }>(error)
+        ? error.response?.data?.message
+        : null;
+      setLoadError(message ?? 'Unable to load organization summary. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void loadDashboard(); }, [loadDashboard]);
 
   async function handleLogout() {
     if (loggingOut) return;
@@ -145,6 +195,57 @@ export default function HomeScreen() {
                 </View>
               </View>
             )}
+          </View>
+
+          <View style={styles.summarySection}>
+            <View style={styles.summaryHeading}>
+              <View style={styles.sectionCopy}>
+                <ThemedText style={styles.sectionTitle}>Organization overview</ThemedText>
+                <ThemedText style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>Live counts for your organization.</ThemedText>
+              </View>
+              <Pressable accessibilityRole="button" disabled={loading} onPress={() => void loadDashboard()} style={[styles.refreshButton, { borderColor: theme.border }]}>
+                <ThemedText>{loading ? 'Loading…' : 'Refresh'}</ThemedText>
+              </Pressable>
+            </View>
+            {loading ? <View style={styles.dashboardState}><ActivityIndicator color={theme.primary} /><ThemedText style={{ color: theme.textSecondary }}>Loading organization summary…</ThemedText></View> : loadError ? (
+              <View style={[styles.errorCard, { backgroundColor: theme.dangerBackground }]}>
+                <ThemedText style={{ color: theme.danger }}>{loadError}</ThemedText>
+                <Pressable accessibilityRole="button" onPress={() => void loadDashboard()}>
+                  <ThemedText style={{ color: theme.primary, fontWeight: '700' }}>Try again</ThemedText>
+                </Pressable>
+              </View>
+            ) : summary ? <>
+              <View style={styles.summaryGrid}>
+                {[
+                  { label: 'Total users', value: summary.totalUsers },
+                  { label: 'Active users', value: summary.activeUsers },
+                  { label: 'Departments', value: summary.totalDepartments },
+                  { label: 'Available roles', value: summary.totalRoles },
+                  { label: 'Role permission grants', value: summary.permissionGrants },
+                ].map((item) => (
+                  <ThemedView key={item.label} style={[styles.summaryCard, { width: isWide ? '18.5%' : '48%', backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+                    <ThemedText style={[styles.summaryValue, { color: theme.primary }]}>{item.value}</ThemedText>
+                    <ThemedText style={[styles.summaryLabel, { color: theme.textSecondary }]}>{item.label}</ThemedText>
+                  </ThemedView>
+                ))}
+              </View>
+              <View style={styles.recentSection}>
+                <View>
+                  <ThemedText style={styles.recentTitle}>Recent users</ThemedText>
+                  <ThemedText style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>Newest accounts in your organization.</ThemedText>
+                </View>
+                {summary.recentUsers.length ? summary.recentUsers.map((user) => (
+                  <View key={user.id} style={[styles.recentUser, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+                    <View style={styles.recentUserCopy}>
+                      <ThemedText style={styles.recentUserName}>{user.first_name} {user.last_name ?? ''}</ThemedText>
+                      <ThemedText style={[styles.recentUserMeta, { color: theme.textSecondary }]}>{user.email} · {user.role_name}{user.department_name ? ` · ${user.department_name}` : ''}{user.created_at ? ` · Added ${new Date(user.created_at).toLocaleDateString()}` : ''}</ThemedText>
+                    </View>
+                    <ThemedText style={[styles.recentUserStatus, { color: user.is_active === 1 ? theme.success : theme.textSecondary }]}>{user.is_active === 1 ? 'Active' : 'Inactive'}</ThemedText>
+                  </View>
+                )) : <ThemedText style={[styles.emptyState, { color: theme.textSecondary }]}>No users are registered in this organization yet.</ThemedText>}
+              </View>
+              <ThemedText style={[styles.summaryNote, { color: theme.textSecondary }]}>Role permission grants counts permissions assigned across the organization’s roles.</ThemedText>
+            </> : null}
           </View>
 
           <View style={styles.sectionHeading}>
@@ -439,6 +540,100 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: Spacing.three,
+  },
+  summarySection: {
+    gap: Spacing.three,
+  },
+  summaryHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.three,
+  },
+  refreshButton: {
+    minHeight: 40,
+    paddingHorizontal: 13,
+    borderWidth: 1,
+    borderRadius: 10,
+    justifyContent: 'center',
+  },
+  dashboardState: {
+    minHeight: 110,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  errorCard: {
+    padding: 16,
+    borderRadius: 14,
+    gap: 10,
+  },
+  summaryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  summaryCard: {
+    minHeight: 108,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    justifyContent: 'center',
+    gap: 7,
+  },
+  summaryValue: {
+    fontSize: 27,
+    lineHeight: 32,
+    fontWeight: '700',
+  },
+  summaryLabel: {
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '600',
+  },
+  recentSection: {
+    gap: 12,
+  },
+  recentTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  recentUser: {
+    minHeight: 68,
+    borderWidth: 1,
+    borderRadius: 13,
+    padding: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  recentUserCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  recentUserName: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  recentUserMeta: {
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  recentUserStatus: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  emptyState: {
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+  },
+  summaryNote: {
+    fontSize: 11,
+    lineHeight: 16,
   },
   sectionCopy: {
     gap: 5,
