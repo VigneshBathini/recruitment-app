@@ -1,5 +1,50 @@
 import pool from "../config/database.js";
 
+// Candidate-facing projection deliberately omits management fields, feedback, and internal titles.
+export async function listCandidateInterviews(candidateId, organizationId) {
+  const [rows] = await pool.execute(
+    `SELECT i.id, i.application_id, j.title AS job_title, i.interview_type,
+       i.scheduled_at, i.duration_minutes, i.meeting_url, i.location, i.status
+     FROM interviews i
+     JOIN applications a ON a.id = i.application_id
+     JOIN jobs j ON j.id = a.job_id AND j.organization_id = a.organization_id
+     WHERE a.candidate_id = ? AND a.organization_id = ?
+     ORDER BY i.scheduled_at ASC, i.id ASC`,
+    [candidateId, organizationId],
+  );
+  if (!rows.length) return [];
+
+  const [panelRows] = await pool.execute(
+    `SELECT ip.interview_id, u.first_name, u.last_name
+     FROM interview_panel_members ip
+     JOIN users u ON u.id = ip.user_id AND u.organization_id = ?
+     JOIN interviews i ON i.id = ip.interview_id
+     JOIN applications a ON a.id = i.application_id AND a.organization_id = ?
+     WHERE ip.interview_id IN (${rows.map(() => "?").join(",")})
+       AND a.candidate_id = ?
+     ORDER BY u.first_name, u.last_name`,
+    [organizationId, organizationId, ...rows.map((row) => row.id), candidateId],
+  );
+  const panelByInterview = new Map();
+  for (const member of panelRows) {
+    const members = panelByInterview.get(Number(member.interview_id)) ?? [];
+    members.push({ name: [member.first_name, member.last_name].filter(Boolean).join(" ") });
+    panelByInterview.set(Number(member.interview_id), members);
+  }
+  return rows.map((row) => ({
+    id: row.id,
+    application_id: row.application_id,
+    job_title: row.job_title,
+    interview_type: row.interview_type,
+    scheduled_at: row.scheduled_at,
+    duration_minutes: row.duration_minutes,
+    meeting_url: row.meeting_url,
+    location: row.location,
+    status: row.status,
+    interviewers: panelByInterview.get(Number(row.id)) ?? [],
+  }));
+}
+
 const detailSelect = `SELECT i.id, i.application_id, i.interview_type, i.title,
  i.scheduled_at, i.duration_minutes, i.meeting_url, i.location, i.status, i.created_by,
  a.organization_id, a.status AS application_status,

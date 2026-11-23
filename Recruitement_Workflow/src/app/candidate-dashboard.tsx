@@ -1,13 +1,15 @@
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
+import { openURL } from 'expo-linking';
 import { isAxiosError } from 'axios';
 import { useTheme } from '@/hooks/use-theme';
 import { getCandidateProfile, type CandidateProfile } from '@/services/candidate-auth.service';
 import { removeCandidateToken } from '@/services/candidate-session.service';
 import { getMyApplications, type CandidateApplication } from '@/services/candidate-jobs.service';
-import { getMyOffers, type CandidateOffer } from '@/services/candidate-offers.service';
+import { getMyOffers, isOfferExpired, type CandidateOffer } from '@/services/candidate-offers.service';
 import { getMyOnboarding, getMyOnboardingRecord } from '@/services/candidate-onboarding.service';
+import { getMyInterviews, type CandidateInterview } from '@/services/candidate-interviews.service';
 import type { OnboardingDocument, OnboardingRecord, OnboardingTask } from '@/services/onboarding-management.service';
 
 type OnboardingDetails = OnboardingRecord & { tasks?: OnboardingTask[]; documents?: OnboardingDocument[] };
@@ -23,12 +25,28 @@ function formatDate(value: string | null | undefined) {
   return Number.isNaN(date.getTime()) ? 'Date unavailable' : date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
+const RECRUITMENT_STAGES = ['APPLIED', 'SCREENING', 'PHONE_SCREEN', 'TECHNICAL_INTERVIEW', 'HR_INTERVIEW', 'OFFER', 'HIRED'];
+
+function stageIndex(value: string | null | undefined) {
+  const stage = (value || '').toUpperCase();
+  if (stage === 'SHORTLISTED') return RECRUITMENT_STAGES.indexOf('SCREENING');
+  return RECRUITMENT_STAGES.indexOf(stage);
+}
+
+function applicationProgress(application: CandidateApplication) {
+  if (application.status === 'REJECTED') return 'Application closed';
+  if (application.status === 'HIRED' || application.status === 'SELECTED') return 'Successfully hired';
+  const stage = application.current_stage || application.status || 'APPLIED';
+  return readable(stage);
+}
+
 export default function CandidateDashboardScreen() {
   const theme = useTheme();
   const { width } = useWindowDimensions();
   const [profile, setProfile] = useState<CandidateProfile | null>(null);
   const [applications, setApplications] = useState<CandidateApplication[]>([]);
   const [offers, setOffers] = useState<CandidateOffer[]>([]);
+  const [interviews, setInterviews] = useState<CandidateInterview[]>([]);
   const [onboarding, setOnboarding] = useState<OnboardingDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -40,13 +58,14 @@ export default function CandidateDashboardScreen() {
     else setLoading(true);
     setErrorMessage('');
     try {
-      const [nextProfile, nextApplications, nextOffers, onboardingRecords] = await Promise.all([
-        getCandidateProfile(), getMyApplications(), getMyOffers(), getMyOnboarding(),
+      const [nextProfile, nextApplications, nextOffers, nextInterviews, onboardingRecords] = await Promise.all([
+        getCandidateProfile(), getMyApplications(), getMyOffers(), getMyInterviews(), getMyOnboarding(),
       ]);
       const onboardingDetails = await Promise.all(onboardingRecords.map((record) => getMyOnboardingRecord(record.id)));
       setProfile(nextProfile);
       setApplications(nextApplications);
       setOffers(nextOffers);
+      setInterviews(nextInterviews);
       setOnboarding(onboardingDetails as OnboardingDetails[]);
     } catch (error) {
       if (isAxiosError(error) && error.response?.status === 401) {
@@ -79,12 +98,12 @@ export default function CandidateDashboardScreen() {
     counts[application.current_stage] = (counts[application.current_stage] ?? 0) + 1;
     return counts;
   }, {});
-  const pendingOfferCount = offers.filter((offer) => offer.status === 'ISSUED' && !offer.candidate_responded_at).length;
+  const pendingOfferCount = offers.filter((offer) => offer.status === 'ISSUED' && !offer.candidate_responded_at && !isOfferExpired(offer.expiry_date)).length;
   const acceptedOfferCount = offers.filter((offer) => offer.status === 'ACCEPTED').length;
   const pendingTaskCount = onboarding.flatMap((record) => record.tasks ?? []).filter((task) => task.status === 'PENDING' || task.status === 'IN_PROGRESS').length;
   const pendingDocumentCount = onboarding.flatMap((record) => record.documents ?? []).filter((document) => document.review_status === 'PENDING').length;
   const metricWidth = wide ? '23.5%' : '48%';
-  const hasData = applications.length > 0 || offers.length > 0 || onboarding.length > 0;
+  const hasData = applications.length > 0 || interviews.length > 0 || offers.length > 0 || onboarding.length > 0;
 
   return (
     <ScrollView
@@ -155,10 +174,44 @@ export default function CandidateDashboardScreen() {
 
                 <View style={styles.columns}>
                   <View style={[styles.summaryCard, styles.column, wide ? styles.columnWide : styles.columnNarrow, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Interviews</Text>
+                    {interviews.length ? interviews.map((interview) => {
+                      const scheduledDate = new Date(interview.scheduled_at);
+                      const when = Number.isNaN(scheduledDate.getTime()) ? 'Date unavailable' : scheduledDate.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+                      return <View key={interview.id} style={[styles.listItem, { borderTopColor: theme.border }]}>
+                        <View style={styles.cardHeading}><Text style={[styles.itemTitle, styles.interviewTitle, { color: theme.text }]}>{interview.job_title}</Text><Text style={[styles.statusPill, { color: theme.primary, backgroundColor: theme.background }]}>{readable(interview.status)}</Text></View>
+                        <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>{readable(interview.interview_type)} · {when} · {interview.duration_minutes} min</Text>
+                        {interview.interviewers.length ? <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Interviewer{interview.interviewers.length === 1 ? '' : 's'}: {interview.interviewers.map((person) => person.name).join(', ')}</Text> : null}
+                        {interview.status === 'SCHEDULED' && interview.meeting_url ? <Pressable accessibilityRole="link" accessibilityLabel="Join interview" onPress={() => { if (interview.meeting_url) void openURL(interview.meeting_url); }}><Text style={{ color: theme.primary, fontWeight: '700' }}>Join interview</Text></Pressable> : null}
+                        {interview.status === 'SCHEDULED' && !interview.meeting_url && interview.location ? <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Location: {interview.location}</Text> : null}
+                        {interview.status === 'CANCELLED' ? <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>This interview was cancelled.</Text> : null}
+                      </View>;
+                    }) : <Text style={[styles.subtitle, { color: theme.textSecondary }]}>No interviews have been scheduled yet.</Text>}
+                  </View>
+
+                  <View style={[styles.summaryCard, styles.column, wide ? styles.columnWide : styles.columnNarrow, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
                     <View style={styles.cardHeading}><Text style={[styles.sectionTitle, { color: theme.text }]}>Recent applications</Text><Pressable onPress={() => router.push('/candidate-applications')}><Text style={{ color: theme.primary, fontWeight: '700' }}>View all</Text></Pressable></View>
-                    {applications.slice(0, 4).map((application) => <Pressable key={application.id} onPress={() => router.push({ pathname: '/candidate-job-details', params: { jobId: String(application.job_id) } })} style={[styles.listItem, { borderTopColor: theme.border }]}>
-                      <Text style={[styles.itemTitle, { color: theme.text }]}>{application.job_title}</Text><Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>{readable(application.status)} · Applied {formatDate(application.applied_at)}</Text>
-                    </Pressable>)}
+                    {applications.map((application) => {
+                      const stage = application.current_stage || application.status || 'APPLIED';
+                      const activeIndex = stageIndex(stage);
+                      const terminal = application.status === 'REJECTED' || application.status === 'HIRED';
+                      return <View key={application.id} style={[styles.applicationItem, { borderTopColor: theme.border }]}>
+                        <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/candidate-job-details', params: { jobId: String(application.job_id) } })} style={styles.applicationHeading}>
+                          <View style={styles.heading}><Text style={[styles.itemTitle, { color: theme.text }]}>{application.job_title}</Text><Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Applied {formatDate(application.applied_at)}</Text></View>
+                          <Text style={[styles.statusPill, { color: theme.primary, backgroundColor: theme.background }]}>{applicationProgress(application)}</Text>
+                        </Pressable>
+                        {application.status === 'REJECTED' ? <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>This application has ended.</Text> : <View accessibilityLabel={`Recruitment progress: ${applicationProgress(application)}`} style={styles.timeline}>
+                          {RECRUITMENT_STAGES.map((item, index) => {
+                            const done = terminal ? false : index <= activeIndex;
+                            const current = !terminal && index === activeIndex;
+                            return <View key={item} style={styles.timelineStep}>
+                              <View style={[styles.timelineDot, { backgroundColor: done ? theme.primary : theme.border }, current && styles.timelineCurrent]} />
+                              <Text numberOfLines={2} style={[styles.timelineLabel, { color: current ? theme.text : theme.textSecondary }]}>{readable(item)}</Text>
+                            </View>;
+                          })}
+                        </View>}
+                      </View>;
+                    })}
                     {applications.length === 0 ? <Text style={[styles.subtitle, { color: theme.textSecondary }]}>No applications yet. Browse jobs to get started.</Text> : null}
                   </View>
 
@@ -230,5 +283,14 @@ const styles = StyleSheet.create({
   columnNarrow: { flexBasis: '100%' },
   cardHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   listItem: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 11, gap: 4 },
+  applicationItem: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 13, gap: 12 },
+  applicationHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  statusPill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, fontSize: 12, fontWeight: '700', textAlign: 'center' },
+  timeline: { flexDirection: 'row', justifyContent: 'space-between', gap: 4 },
+  timelineStep: { flex: 1, alignItems: 'center', gap: 6 },
+  timelineDot: { width: 9, height: 9, borderRadius: 6 },
+  timelineCurrent: { width: 13, height: 13, borderWidth: 2, borderColor: '#FFFFFF' },
+  timelineLabel: { fontSize: 9, lineHeight: 12, textAlign: 'center' },
   itemTitle: { fontSize: 15, lineHeight: 21, fontWeight: '700' },
+  interviewTitle: { flex: 1 },
 });

@@ -18,6 +18,13 @@ export type CandidateOffer = {
   job_title: string;
 };
 
+export function isOfferExpired(expiryDate: string | null | undefined, today = new Date()) {
+  if (!expiryDate) return false;
+  const expiry = expiryDate.slice(0, 10);
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  return /^\d{4}-\d{2}-\d{2}$/.test(expiry) && expiry < todayKey;
+}
+
 type OffersResponse = { success: boolean; data: CandidateOffer[] };
 type OfferResponse = { success: boolean; data: CandidateOffer };
 

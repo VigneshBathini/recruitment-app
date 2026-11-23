@@ -1,9 +1,10 @@
-import { addFeedback, changeInterview, completeInterview, createInterview, getActiveInterviewers, getInterview, listInterviews } from "../repositories/interview.repository.js";
+import { addFeedback, changeInterview, completeInterview, createInterview, getActiveInterviewers, getInterview, listInterviews, listCandidateInterviews } from "../repositories/interview.repository.js";
 const fail=(m,s=400)=>Object.assign(new Error(m),{statusCode:s});
 const id=v=>{const n=Number(v);if(!Number.isSafeInteger(n)||n<1)throw fail("ID must be a positive integer");return n;};
 const recruiter=u=>u.role_name?.toLowerCase()==="recruiter";
 const interviewer=u=>u.role_name?.toLowerCase()==="interviewer";
 export async function listService(user){ return listInterviews(user.organization_id,user.id,interviewer(user)); }
+export async function candidateListService(candidate){ return listCandidateInterviews(candidate.id, candidate.organization_id); }
 export async function detailService(value,user){const row=await getInterview(id(value),user.organization_id,user.id,interviewer(user));if(!row)throw fail("Interview not found",404);return row;}
 export async function createService(input,user){if(!recruiter(user))throw fail("Only recruiters can schedule interviews",403); if(!Array.isArray(input.panel_member_ids)||!input.panel_member_ids.length)throw fail("At least one panel member is required");const ids=[...new Set(input.panel_member_ids.map(id))];if(ids.length!==input.panel_member_ids.length)throw fail("Panel members must be unique");const active=await getActiveInterviewers(user.organization_id,ids);if(active.length!==ids.length)throw fail("Every panel member must be an active interviewer in this organization");
  if(!input.interview_type||!input.title||!input.scheduled_at||!Number.isInteger(Number(input.duration_minutes))||Number(input.duration_minutes)<1)throw fail("Interview type, title, date/time and positive duration are required");

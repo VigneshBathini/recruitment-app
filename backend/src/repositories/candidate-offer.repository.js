@@ -39,7 +39,8 @@ export async function respondToCandidateOffer(id, candidateId, organizationId, s
   try {
     await connection.beginTransaction();
     const [rows] = await connection.execute(
-      `SELECT o.id, o.status, o.candidate_responded_at
+      `SELECT o.id, o.status, o.candidate_responded_at,
+         (o.expiry_date IS NOT NULL AND o.expiry_date < CURRENT_DATE) AS expired
        FROM offers o
        INNER JOIN applications a
          ON a.id = o.application_id AND a.organization_id = o.organization_id
@@ -56,13 +57,18 @@ export async function respondToCandidateOffer(id, candidateId, organizationId, s
       await connection.rollback();
       return { error: "already_responded" };
     }
+    if (Number(offer.expired)) {
+      await connection.rollback();
+      return { error: "expired" };
+    }
 
     const [result] = await connection.execute(
       `UPDATE offers
        SET status = ?, candidate_responded_at = CURRENT_TIMESTAMP,
            candidate_response_comments = ?
        WHERE id = ? AND organization_id = ? AND status = 'ISSUED'
-         AND candidate_responded_at IS NULL`,
+         AND candidate_responded_at IS NULL
+         AND (expiry_date IS NULL OR expiry_date >= CURRENT_DATE)`,
       [status, comments ?? null, id, organizationId],
     );
     if (result.affectedRows !== 1) {

@@ -3,7 +3,7 @@ import { ActivityIndicator, Linking, Pressable, RefreshControl, ScrollView, Styl
 import { isAxiosError } from 'axios';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '@/hooks/use-theme';
-import { getMyOffer, respondToMyOffer, type CandidateOffer } from '@/services/candidate-offers.service';
+import { getMyOffer, isOfferExpired, respondToMyOffer, type CandidateOffer } from '@/services/candidate-offers.service';
 
 function dateLabel(value: string | null) {
   if (!value) return 'Not specified';
@@ -22,6 +22,7 @@ export default function CandidateOfferDetailsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const offerExpired = isOfferExpired(offer?.expiry_date);
 
   const load = useCallback(async (refresh = false) => {
     if (!Number.isSafeInteger(offerId) || offerId <= 0) { setErrorMessage('Invalid offer ID.'); setLoading(false); return; }
@@ -34,7 +35,7 @@ export default function CandidateOfferDetailsScreen() {
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 
   async function respond(action: 'accept' | 'decline') {
-    if (!offer || offer.status !== 'ISSUED') return;
+    if (!offer || offer.status !== 'ISSUED' || isOfferExpired(offer.expiry_date)) return;
     setSubmitting(true);
     setErrorMessage('');
     try { setOffer(await respondToMyOffer(offer.id, action, comments)); }
@@ -53,7 +54,7 @@ export default function CandidateOfferDetailsScreen() {
           : !offer ? <View style={[styles.card, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}><Text style={styles.error}>{errorMessage || 'Offer not found.'}</Text></View>
             : <View style={[styles.card, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
               <Text style={[styles.jobTitle, { color: theme.text }]}>{offer.job_title}</Text>
-              <Text style={[styles.status, { color: theme.primary }]}>{offer.status.replace(/_/g, ' ')}</Text>
+              <Text style={[styles.status, { color: theme.primary }]}>{offerExpired && offer.status === 'ISSUED' ? 'EXPIRED' : offer.status.replace(/_/g, ' ')}</Text>
               <View style={styles.term}><Text style={[styles.label, { color: theme.textSecondary }]}>Annual CTC</Text><Text style={[styles.value, { color: theme.text }]}>{offer.currency} {offer.annual_ctc}</Text></View>
               <View style={styles.term}><Text style={[styles.label, { color: theme.textSecondary }]}>Employment type</Text><Text style={[styles.value, { color: theme.text }]}>{offer.employment_type}</Text></View>
               <View style={styles.term}><Text style={[styles.label, { color: theme.textSecondary }]}>Work location</Text><Text style={[styles.value, { color: theme.text }]}>{offer.work_location || 'Not specified'}</Text></View>
@@ -62,7 +63,8 @@ export default function CandidateOfferDetailsScreen() {
               <View style={styles.term}><Text style={[styles.label, { color: theme.textSecondary }]}>Issued</Text><Text style={[styles.value, { color: theme.text }]}>{dateLabel(offer.issued_at)}</Text></View>
               {offer.offer_letter_url ? <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(offer.offer_letter_url!)}><Text style={[styles.link, { color: theme.primary }]}>Open offer letter</Text></Pressable> : null}
               {offer.candidate_responded_at ? <View style={styles.response}><Text style={[styles.label, { color: theme.textSecondary }]}>Response date: {dateLabel(offer.candidate_responded_at)}</Text><Text style={[styles.value, { color: theme.text }]}>Comments: {offer.candidate_response_comments || 'None'}</Text></View> : null}
-              {offer.status === 'ISSUED' ? <View style={styles.responseForm}>
+              {offerExpired && offer.status === 'ISSUED' ? <Text style={{ color: theme.textSecondary }}>The response deadline for this offer has passed.</Text> : null}
+              {offer.status === 'ISSUED' && !offerExpired ? <View style={styles.responseForm}>
                 <Text style={[styles.label, { color: theme.textSecondary }]}>Comments (optional)</Text>
                 <TextInput value={comments} onChangeText={setComments} multiline maxLength={5000} placeholder="Add a comment" placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border }]} />
                 {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}

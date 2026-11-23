@@ -128,9 +128,9 @@ export async function approveRequirementController(req, res, next) {
 
 export async function rejectRequirementController(req, res, next) {
   try {
-    const rejectionReason = req.body.rejection_reason;
+    const rejectionReason = req.body?.rejection_reason;
 
-    if (!rejectionReason || !rejectionReason.trim()) {
+    if (typeof rejectionReason !== "string" || !rejectionReason.trim()) {
       return res.status(400).json({
         success: false,
         message: "Rejection reason is required",

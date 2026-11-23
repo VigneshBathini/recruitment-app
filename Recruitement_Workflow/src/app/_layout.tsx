@@ -106,6 +106,7 @@ export default function RootLayout() {
         const interviewRoutes = ['/interviews', '/interview-details'];
         const applicationReviewRoutes = ['/application-review', '/application-review-details'];
         const onboardingRoutes = ['/onboarding', '/onboarding-details'];
+        const jobDescriptionRoutes = ['/job-descriptions', '/job-description-details'];
         if (accountType === 'platform_admin') {
           if (pathname === '/' || pathname === '/explore' || roleDashboardRoutes.includes(pathname)) {
             router.replace('/platform-admin');
@@ -167,6 +168,12 @@ if (onboardingRoutes.includes(pathname)) {
   const canOnboard = permissions.includes('onboarding.view') || permissions.includes('onboarding.manage') || permissions.includes('onboarding.document.review') || permissions.includes('onboarding.complete');
   if (!canOnboard) router.replace('/explore');
 }
+
+if (jobDescriptionRoutes.includes(pathname)) {
+  const permissions = organization.permissions ?? [];
+  const canAccessJobs = ['job.view', 'job.manage', 'job.approve'].some((permission) => permissions.includes(permission));
+  if (!canAccessJobs) router.replace('/explore');
+}
       } catch {
         void logoutUser();
         if (active) router.replace('/login');
@@ -226,6 +233,8 @@ if (onboardingRoutes.includes(pathname)) {
         <Stack.Screen name="interview-details" options={{ title: 'Interview Details' }} />
         <Stack.Screen name="onboarding" options={{ title: 'Onboarding Management' }} />
         <Stack.Screen name="onboarding-details" options={{ title: 'Onboarding Details' }} />
+        <Stack.Screen name="job-descriptions" options={{ headerShown: false }} />
+        <Stack.Screen name="job-description-details" options={{ headerShown: false }} />
         <Stack.Screen name="module" options={{ title: 'Recruitment module' }} />
         <Stack.Screen
           name="create-organization"

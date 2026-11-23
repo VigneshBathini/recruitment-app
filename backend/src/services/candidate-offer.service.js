@@ -41,5 +41,8 @@ export async function respondToMyOfferService(idValue, candidate, status, commen
   if (result.error === "already_responded") {
     throw serviceError("Only an issued offer without a prior response can be answered", 409);
   }
+  if (result.error === "expired") {
+    throw serviceError("The offer response deadline has passed", 409);
+  }
   return result.offer;
 }
