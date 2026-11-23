@@ -1,4 +1,7 @@
 import api from '@/services/api';
+import { Linking, Platform } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
+import { getToken } from '@/services/token.service';
 
 export type ManagedApplication = {
   id: number;
@@ -9,7 +12,7 @@ export type ManagedApplication = {
   last_name: string | null;
   email: string;
   phone: string | null;
-  resume_url: string | null;
+  has_resume_snapshot: boolean | number;
   candidate_created_at: string;
   jd_content: string;
   job_status: string;
@@ -46,6 +49,32 @@ export type InterviewReview = {
 export type ApplicationReview = ManagedApplication & { completed_interviews: InterviewReview[] };
 
 type ApiResponse<T> = { success: boolean; data: T; message?: string };
+
+export async function accessApplicationResume(id: number, download = false) {
+  const token = await getToken();
+  if (!token) throw new Error('Your session has expired.');
+  const endpoint = `${api.defaults.baseURL}/applications/${id}/resume`;
+  if (Platform.OS === 'web') {
+    const response = await fetch(endpoint, { headers: { Authorization: `Bearer ${token}` } });
+    if (!response.ok) throw new Error('Unable to open the submitted application resume.');
+    const blob = await response.blob(); const url = URL.createObjectURL(blob);
+    const extension = blob.type === 'application/msword' ? 'doc' : blob.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ? 'docx' : 'pdf';
+    if (download) { const anchor = document.createElement('a'); anchor.href = url; anchor.download = `application-${id}-resume.${extension}`; anchor.click(); }
+    else window.open(url, '_blank', 'noopener,noreferrer');
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    return;
+  }
+  const cacheId = Date.now();
+  const temporaryPath = `${FileSystem.cacheDirectory}application-${id}-resume-${cacheId}.tmp`;
+  const result = await FileSystem.downloadAsync(endpoint, temporaryPath, { headers: { Authorization: `Bearer ${token}` } });
+  if (result.status < 200 || result.status >= 300) throw new Error('Unable to open the submitted application resume.');
+  const disposition = result.headers['content-disposition'] ?? result.headers['Content-Disposition'] ?? '';
+  const extension = disposition.match(/filename\*?=(?:UTF-8''|"?)[^;"%]*?(\.(?:pdf|docx?|PDF|DOCX?))/i)?.[1]?.toLowerCase() ?? '.pdf';
+  const filePath = `${FileSystem.cacheDirectory}application-${id}-resume-${cacheId}${extension}`;
+  await FileSystem.moveAsync({ from: result.uri, to: filePath });
+  const uri = Platform.OS === 'android' ? await FileSystem.getContentUriAsync(filePath) : filePath;
+  await Linking.openURL(uri);
+}
 
 export async function getApplicationCounts() {
   const response = await api.get<ApiResponse<ApplicationCounts>>('/applications/dashboard');

@@ -1,10 +1,10 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { isAxiosError } from 'axios';
 import { useTheme } from '@/hooks/use-theme';
 import { getCurrentOrganizationUser } from '@/services/auth.service';
-import { getApplicationDetails, moveApplicationStage, rejectApplication, shortlistApplication, type ManagedApplication } from '@/services/application-management.service';
+import { accessApplicationResume, getApplicationDetails, moveApplicationStage, rejectApplication, shortlistApplication, type ManagedApplication } from '@/services/application-management.service';
 
 const stageOptions = ['SCREENING', 'PHONE_SCREEN', 'TECHNICAL_INTERVIEW', 'HR_INTERVIEW', 'OFFER'];
 const label = (value: string) => value.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -21,6 +21,7 @@ export default function ApplicationDetailsScreen() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [comments, setComments] = useState('');
+  const [resumeBusy, setResumeBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -70,7 +71,7 @@ export default function ApplicationDetailsScreen() {
             <Text style={[styles.title, { color: theme.text }]}>{application.first_name} {application.last_name ?? ''}</Text>
             <Text style={[styles.text, { color: theme.textSecondary }]}>{application.email}</Text>
             {application.phone ? <Text style={[styles.text, { color: theme.textSecondary }]}>{application.phone}</Text> : null}
-            {application.resume_url ? <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(application.resume_url!)}><Text style={[styles.link, { color: theme.primary }]}>Open candidate resume</Text></Pressable> : <Text style={[styles.text, { color: theme.textSecondary }]}>No resume provided</Text>}
+            {application.has_resume_snapshot ? <View style={styles.resumeActions}><Pressable accessibilityRole="button" disabled={resumeBusy} onPress={() => { setResumeBusy(true); void accessApplicationResume(id).catch((cause) => setError(cause instanceof Error ? cause.message : 'Unable to open resume.')).finally(() => setResumeBusy(false)); }}><Text style={[styles.link, { color: theme.primary }]}>{resumeBusy ? 'Opening…' : 'Preview submitted resume'}</Text></Pressable><Pressable accessibilityRole="button" disabled={resumeBusy} onPress={() => { setResumeBusy(true); void accessApplicationResume(id, true).catch((cause) => setError(cause instanceof Error ? cause.message : 'Unable to download resume.')).finally(() => setResumeBusy(false)); }}><Text style={[styles.link, { color: theme.primary }]}>Download submitted resume</Text></Pressable></View> : <Text style={[styles.text, { color: theme.textSecondary }]}>No resume was submitted with this application.</Text>}
             <Text style={[styles.text, { color: theme.textSecondary }]}>Candidate since {displayDate(application.candidate_created_at)}</Text>
           </View>
           <View style={[styles.card, card]}>
@@ -111,5 +112,5 @@ export default function ApplicationDetailsScreen() {
 
 const styles = StyleSheet.create({
   content: { flexGrow: 1, padding: 22 }, page: { width: '100%', maxWidth: 920, alignSelf: 'center', gap: 15 }, back: { fontSize: 14, fontWeight: '700', paddingVertical: 5 }, state: { minHeight: 220, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  card: { borderWidth: 1, borderRadius: 17, padding: 20, gap: 11 }, eyebrow: { fontSize: 10, letterSpacing: 1, fontWeight: '800' }, title: { fontSize: 24, fontWeight: '800' }, sectionTitle: { fontSize: 17, fontWeight: '700' }, jobTitle: { fontSize: 18, fontWeight: '700' }, text: { fontSize: 13, lineHeight: 20 }, value: { fontSize: 14, fontWeight: '700' }, description: { fontSize: 14, lineHeight: 22, marginTop: 5 }, link: { fontSize: 14, fontWeight: '700' }, row: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 }, commentBox: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 10, gap: 5 }, stageList: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, stageButton: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 11, paddingVertical: 8 }, input: { minHeight: 90, borderWidth: 1, borderRadius: 10, padding: 11, textAlignVertical: 'top' }, actions: { flexDirection: 'row', gap: 9 }, button: { minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 10, paddingHorizontal: 16 }, buttonText: { fontSize: 14, fontWeight: '700' }, rejectButton: { minHeight: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 10, paddingHorizontal: 16 }, rejectText: { color: '#B42318', fontWeight: '700' }, disabled: { opacity: 0.5 }, error: { color: '#B42318', fontSize: 13 }, notice: { fontSize: 13, fontWeight: '600' },
+  card: { borderWidth: 1, borderRadius: 17, padding: 20, gap: 11 }, eyebrow: { fontSize: 10, letterSpacing: 1, fontWeight: '800' }, title: { fontSize: 24, fontWeight: '800' }, sectionTitle: { fontSize: 17, fontWeight: '700' }, jobTitle: { fontSize: 18, fontWeight: '700' }, text: { fontSize: 13, lineHeight: 20 }, value: { fontSize: 14, fontWeight: '700' }, description: { fontSize: 14, lineHeight: 22, marginTop: 5 }, link: { fontSize: 14, fontWeight: '700' }, resumeActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 }, row: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 }, commentBox: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 10, gap: 5 }, stageList: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, stageButton: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 11, paddingVertical: 8 }, input: { minHeight: 90, borderWidth: 1, borderRadius: 10, padding: 11, textAlignVertical: 'top' }, actions: { flexDirection: 'row', gap: 9 }, button: { minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 10, paddingHorizontal: 16 }, buttonText: { fontSize: 14, fontWeight: '700' }, rejectButton: { minHeight: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 10, paddingHorizontal: 16 }, rejectText: { color: '#B42318', fontWeight: '700' }, disabled: { opacity: 0.5 }, error: { color: '#B42318', fontSize: 13 }, notice: { fontSize: 13, fontWeight: '600' },
 });

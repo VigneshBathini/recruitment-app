@@ -1,12 +1,14 @@
 import {
   getApplicationDashboardCounts,
   getApplicationDetails,
+  getApplicationResumeKey,
   getApplicationReviewDetails,
   listApplicationReviewQueue,
   decideOnApplication,
   listApplications,
   updateApplicationProgress,
 } from "../repositories/application.repository.js";
+import { getCandidateResumeFile } from "./candidate-resume-storage.js";
 
 const stages = new Set(["SCREENING", "PHONE_SCREEN", "TECHNICAL_INTERVIEW", "HR_INTERVIEW", "OFFER"]);
 
@@ -54,6 +56,14 @@ export async function getApplicationDetailsService(idValue, organizationId) {
   const application = await getApplicationDetails(parseId(idValue), organizationId);
   if (!application) throw serviceError("Application not found", 404);
   return application;
+}
+
+export async function getApplicationResumeFileService(idValue, organizationId) {
+  const id = parseId(idValue);
+  const application = await getApplicationResumeKey(id, organizationId);
+  if (!application) throw serviceError("Application not found", 404);
+  if (!application.resume_url) throw serviceError("No resume was submitted with this application", 404);
+  return getCandidateResumeFile(application.resume_url);
 }
 
 function requireHiringManager(user) {

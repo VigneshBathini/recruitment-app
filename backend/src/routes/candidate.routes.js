@@ -7,7 +7,9 @@ import {
   getCandidateOffersController,
   getCandidateApplicationsController,
   getCandidateProfileController,
+  getCandidateResumeFileController,
   updateCandidateProfileController,
+  uploadCandidateResumeController,
 } from "../controllers/candidate.controller.js";
 import {
   getMyOnboardingController,
@@ -25,6 +27,8 @@ const router = Router();
 router.use(authenticateCandidateToken);
 router.get("/me", getCandidateProfileController);
 router.put("/me", updateCandidateProfileController);
+router.get("/me/resume/file", getCandidateResumeFileController);
+router.post("/me/resume", express.raw({ type: "*/*", limit: "10mb" }), uploadCandidateResumeController);
 router.post("/me/applications", applyToJobController);
 router.get("/me/applications", getCandidateApplicationsController);
 router.get("/me/interviews", listCandidateInterviewsController);

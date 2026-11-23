@@ -7,7 +7,9 @@ import {
   getCandidateApplications,
   getCandidateProfile,
   updateCandidateProfile,
+  updateCandidateResume,
 } from "../repositories/candidate.repository.js";
+import { getCandidateResumeFile, removeCandidateResume, storeCandidateResume } from "./candidate-resume-storage.js";
 
 function createError(message, statusCode) {
   const error = new Error(message);
@@ -39,7 +41,7 @@ function candidateResponse(candidate) {
     last_name: candidate.last_name,
     email: candidate.email,
     phone: candidate.phone ?? null,
-    resume_url: candidate.resume_url ?? null,
+    resume_url: candidate.resume_url ? "/api/candidates/me/resume/file" : null,
   };
 }
 
@@ -79,7 +81,7 @@ export async function loginCandidate(data) {
 export async function getCandidateProfileService(candidateId, organizationId) {
   const candidate = await getCandidateProfile(candidateId, organizationId);
   if (!candidate) throw createError("Candidate not found", 404);
-  return candidate;
+  return { ...candidate, resume_url: candidate.resume_url ? "/api/candidates/me/resume/file" : null };
 }
 
 export async function updateCandidateProfileService(candidateId, organizationId, data) {
@@ -89,7 +91,28 @@ export async function updateCandidateProfileService(candidateId, organizationId,
   }
   const candidate = await updateCandidateProfile(candidateId, organizationId, profileData);
   if (!candidate) throw createError("Candidate not found", 404);
-  return candidate;
+  return { ...candidate, resume_url: candidate.resume_url ? "/api/candidates/me/resume/file" : null };
+}
+
+export async function uploadCandidateResumeService(file, mimeType, fileName, candidate) {
+  let storageKey;
+  try {
+    storageKey = await storeCandidateResume(file, mimeType, fileName);
+    const updated = await updateCandidateResume(candidate.id, candidate.organization_id, storageKey);
+    if (!updated) throw createError("Candidate profile not found", 404);
+    // Keep previous resume files: applications submitted against them retain their snapshot.
+    return { resume_url: "/api/candidates/me/resume/file", file_name: `resume${storageKey.slice(storageKey.lastIndexOf("."))}` };
+  } catch (error) {
+    await removeCandidateResume(storageKey);
+    throw error;
+  }
+}
+
+export async function getCandidateResumeFileService(candidate) {
+  const profile = await getCandidateProfile(candidate.id, candidate.organization_id);
+  if (!profile) throw createError("Candidate not found", 404);
+  if (!profile.resume_url) throw createError("No resume has been uploaded", 404);
+  return getCandidateResumeFile(profile.resume_url);
 }
 
 export async function applyToJobService(candidateId, organizationId, jobId) {

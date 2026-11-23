@@ -4,7 +4,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { isAxiosError } from 'axios';
 import { useTheme } from '@/hooks/use-theme';
 import { getCurrentOrganizationUser } from '@/services/auth.service';
-import { decideOnApplication, getApplicationReview, type ApplicationReview } from '@/services/application-management.service';
+import { accessApplicationResume, decideOnApplication, getApplicationReview, type ApplicationReview } from '@/services/application-management.service';
 
 const label = (value: string) => value.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
 const date = (value: string) => new Date(value).toLocaleString();
@@ -19,6 +19,7 @@ export default function ApplicationReviewDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [canDecide, setCanDecide] = useState(false);
+  const [resumeBusy, setResumeBusy] = useState(false);
   const load = useCallback(async () => {
     setLoading(true);
     try { const [result, user] = await Promise.all([getApplicationReview(id), getCurrentOrganizationUser()]); setApplication(result); setComment(result.decision_comments ?? ''); setCanDecide(user.permissions.includes('application.decision')); setError(''); }
@@ -37,7 +38,7 @@ export default function ApplicationReviewDetails() {
   return <ScrollView contentContainerStyle={[styles.page, { backgroundColor: theme.background }]}>
     <Pressable onPress={() => router.back()}><Text style={{ color: theme.primary, fontWeight: '700' }}>← Review queue</Text></Pressable>
     {loading ? <ActivityIndicator color={theme.primary} /> : application ? <>
-      <View style={[styles.card, card]}><Text style={[styles.title, { color: theme.text }]}>{application.first_name} {application.last_name ?? ''}</Text><Text style={{ color: theme.textSecondary }}>{application.email} · {application.job_title}</Text><Text style={{ color: theme.textSecondary }}>Application status: {label(application.status)} · Stage: {label(application.current_stage)}</Text></View>
+      <View style={[styles.card, card]}><Text style={[styles.title, { color: theme.text }]}>{application.first_name} {application.last_name ?? ''}</Text><Text style={{ color: theme.textSecondary }}>{application.email} · {application.job_title}</Text><Text style={{ color: theme.textSecondary }}>Application status: {label(application.status)} · Stage: {label(application.current_stage)}</Text>{application.has_resume_snapshot ? <View style={styles.resumeActions}><Pressable disabled={resumeBusy} onPress={() => { setResumeBusy(true); void accessApplicationResume(id).catch((cause) => setError(cause instanceof Error ? cause.message : 'Unable to open resume.')).finally(() => setResumeBusy(false)); }}><Text style={{ color: theme.primary, fontWeight: '700' }}>{resumeBusy ? 'Opening…' : 'Preview submitted resume'}</Text></Pressable><Pressable disabled={resumeBusy} onPress={() => { setResumeBusy(true); void accessApplicationResume(id, true).catch((cause) => setError(cause instanceof Error ? cause.message : 'Unable to download resume.')).finally(() => setResumeBusy(false)); }}><Text style={{ color: theme.primary, fontWeight: '700' }}>Download submitted resume</Text></Pressable></View> : <Text style={{ color: theme.textSecondary }}>No resume was submitted with this application.</Text>}</View>
       <View style={[styles.card, card]}><Text style={[styles.heading, { color: theme.text }]}>Completed interviews and feedback</Text>
         {application.completed_interviews.map((interview) => <View key={interview.id} style={[styles.interview, { borderColor: theme.border }]}>
           <Text style={[styles.name, { color: theme.text }]}>{interview.title} · {label(interview.interview_type)}</Text><Text style={{ color: theme.textSecondary }}>{date(interview.scheduled_at)}</Text>
@@ -56,4 +57,4 @@ export default function ApplicationReviewDetails() {
   </ScrollView>;
 }
 
-const styles = StyleSheet.create({ page: { flexGrow: 1, padding: 22, gap: 14 }, title: { fontSize: 24, fontWeight: '800' }, heading: { fontSize: 18, fontWeight: '800' }, name: { fontSize: 15, fontWeight: '700' }, card: { borderWidth: 1, borderRadius: 15, padding: 17, gap: 11 }, interview: { borderTopWidth: 1, paddingTop: 12, gap: 9 }, feedback: { borderWidth: 1, borderRadius: 11, padding: 12, gap: 5 }, input: { minHeight: 90, borderWidth: 1, borderRadius: 10, padding: 11, textAlignVertical: 'top' }, actions: { flexDirection: 'row', gap: 10 }, select: { padding: 13, borderRadius: 9, alignItems: 'center', minWidth: 100 }, reject: { padding: 12, borderRadius: 9, borderWidth: 1, borderColor: '#B42318', alignItems: 'center', minWidth: 100 }, disabled: { opacity: 0.45 }, error: { color: '#B42318' } });
+const styles = StyleSheet.create({ page: { flexGrow: 1, padding: 22, gap: 14 }, title: { fontSize: 24, fontWeight: '800' }, heading: { fontSize: 18, fontWeight: '800' }, name: { fontSize: 15, fontWeight: '700' }, card: { borderWidth: 1, borderRadius: 15, padding: 17, gap: 11 }, resumeActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 }, interview: { borderTopWidth: 1, paddingTop: 12, gap: 9 }, feedback: { borderWidth: 1, borderRadius: 11, padding: 12, gap: 5 }, input: { minHeight: 90, borderWidth: 1, borderRadius: 10, padding: 11, textAlignVertical: 'top' }, actions: { flexDirection: 'row', gap: 10 }, select: { padding: 13, borderRadius: 9, alignItems: 'center', minWidth: 100 }, reject: { padding: 12, borderRadius: 9, borderWidth: 1, borderColor: '#B42318', alignItems: 'center', minWidth: 100 }, disabled: { opacity: 0.45 }, error: { color: '#B42318' } });

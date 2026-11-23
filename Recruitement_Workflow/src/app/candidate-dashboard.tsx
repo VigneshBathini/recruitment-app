@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, T
 import { router, useFocusEffect } from 'expo-router';
 import { openURL } from 'expo-linking';
 import { isAxiosError } from 'axios';
+import { chooseResume, openMyResume, uploadMyResume } from '@/services/candidate-resume.service';
 import { useTheme } from '@/hooks/use-theme';
 import { getCandidateProfile, type CandidateProfile } from '@/services/candidate-auth.service';
 import { removeCandidateToken } from '@/services/candidate-session.service';
@@ -51,6 +52,9 @@ export default function CandidateDashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [resumeBusy, setResumeBusy] = useState(false);
+  const [resumeMessage, setResumeMessage] = useState('');
+  const [resumeError, setResumeError] = useState(false);
   const wide = width >= 760;
 
   const loadDashboard = useCallback(async (refresh = false) => {
@@ -86,6 +90,22 @@ export default function CandidateDashboardScreen() {
   async function signOut() {
     await removeCandidateToken();
     router.replace('/candidate-login');
+  }
+
+  async function selectAndUploadResume() {
+    setResumeBusy(true); setResumeMessage(''); setResumeError(false);
+    try {
+      const selection = await chooseResume();
+      if (selection.canceled) return;
+      const asset = selection.assets[0];
+      if (!asset) return;
+      await uploadMyResume(asset);
+      setResumeMessage('Your resume was uploaded.');
+      await loadDashboard(true);
+    } catch (cause) {
+      setResumeError(true);
+      setResumeMessage(cause instanceof Error ? cause.message : 'Unable to upload your resume. Try again.');
+    } finally { setResumeBusy(false); }
   }
 
   const applicationStatuses = applications.reduce<Record<string, number>>((counts, application) => {
@@ -136,6 +156,14 @@ export default function CandidateDashboardScreen() {
               <Text style={[styles.welcome, { color: theme.text }]}>Welcome, {profile.first_name}</Text>
               <Text style={[styles.detail, { color: theme.textSecondary }]}>{profile.email}</Text>
               {profile.organization_slug ? <Text style={[styles.detail, { color: theme.textSecondary }]}>Organization: {profile.organization_slug}</Text> : null}
+              <View style={[styles.resumePanel, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                <View style={styles.resumeCopy}><Text style={[styles.resumeTitle, { color: theme.text }]}>{profile.resume_url ? 'Resume on your profile' : 'Add a resume to your profile'}</Text><Text style={[styles.detail, { color: theme.textSecondary }]}>{profile.resume_url ? 'Your current resume will be attached to new applications.' : 'Upload a PDF, DOC, or DOCX file up to 10 MB. Existing applications keep their submitted copy.'}</Text></View>
+                <View style={styles.resumeActions}>
+                  {profile.resume_url ? <><Pressable accessibilityRole="button" disabled={resumeBusy} onPress={() => void openMyResume().catch((cause) => { setResumeError(true); setResumeMessage(cause instanceof Error ? cause.message : 'Unable to open resume.'); })} style={[styles.outlineButton, { borderColor: theme.border }]}><Text style={{ color: theme.primary, fontWeight: '700' }}>Preview resume</Text></Pressable><Pressable accessibilityRole="button" disabled={resumeBusy} onPress={() => void openMyResume(true).catch((cause) => { setResumeError(true); setResumeMessage(cause instanceof Error ? cause.message : 'Unable to download resume.'); })} style={[styles.outlineButton, { borderColor: theme.border }]}><Text style={{ color: theme.primary, fontWeight: '700' }}>Download resume</Text></Pressable></> : null}
+                  <Pressable accessibilityRole="button" disabled={resumeBusy} onPress={() => void selectAndUploadResume()} style={[styles.actionButton, { backgroundColor: theme.primary }, resumeBusy && styles.disabled]}><Text style={[styles.actionText, { color: theme.primaryText }]}>{resumeBusy ? 'Uploading…' : profile.resume_url ? 'Replace resume' : 'Upload resume'}</Text></Pressable>
+                </View>
+                {resumeMessage ? <Text accessibilityRole="alert" style={{ color: resumeError ? theme.danger : theme.success }}>{resumeMessage}</Text> : null}
+              </View>
               <Text style={[styles.note, { color: theme.textSecondary }]}>Explore published openings from your organization and apply when you find the right fit.</Text>
               <View style={styles.navigation}>
                 <Pressable accessibilityRole="button" onPress={() => router.push('/candidate-jobs')} style={[styles.actionButton, { backgroundColor: theme.primary }]}>
@@ -265,7 +293,12 @@ const styles = StyleSheet.create({
   note: { fontSize: 14, lineHeight: 21, marginTop: 5 },
   navigation: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginTop: 8 },
   actionButton: { minHeight: 42, justifyContent: 'center', borderRadius: 10, paddingHorizontal: 15, paddingVertical: 11 },
+  disabled: { opacity: 0.5 },
   actionText: { fontSize: 14, fontWeight: '700' },
+  resumePanel: { borderWidth: 1, borderRadius: 14, padding: 15, gap: 10 },
+  resumeCopy: { gap: 5 },
+  resumeTitle: { fontSize: 15, fontWeight: '800' },
+  resumeActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
   sectionHeading: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   sectionTitle: { fontSize: 18, lineHeight: 24, fontWeight: '800' },
   metrics: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 },

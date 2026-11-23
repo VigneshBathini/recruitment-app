@@ -1,3 +1,4 @@
+import { createReadStream } from "node:fs";
 import {
   applyToJobService,
   getCandidateApplicationsService,
@@ -5,6 +6,8 @@ import {
   loginCandidate,
   registerCandidate,
   updateCandidateProfileService,
+  uploadCandidateResumeService,
+  getCandidateResumeFileService,
 } from "../services/candidate.service.js";
 import {
   getMyOfferService,
@@ -64,6 +67,25 @@ export async function updateCandidateProfileController(req, res, next) {
   try {
     const profile = await updateCandidateProfileService(req.candidate.id, req.candidate.organization_id, data);
     return res.status(200).json({ success: true, message: "Candidate profile updated", data: profile });
+  } catch (error) { return sendError(error, res, next); }
+}
+
+export async function uploadCandidateResumeController(req, res, next) {
+  const fileName = req.query.file_name;
+  if (typeof fileName !== "string" || !fileName.trim()) return res.status(400).json({ success: false, message: "file_name is required" });
+  try {
+    const data = await uploadCandidateResumeService(req.body, req.headers["content-type"], fileName, req.candidate);
+    return res.status(200).json({ success: true, message: "Resume uploaded successfully", data });
+  } catch (error) { return sendError(error, res, next); }
+}
+
+export async function getCandidateResumeFileController(req, res, next) {
+  try {
+    const file = await getCandidateResumeFileService(req.candidate);
+    res.setHeader("Content-Type", file.mime_type);
+    res.setHeader("Content-Length", file.file_size);
+    res.setHeader("Content-Disposition", `inline; filename*=UTF-8''${encodeURIComponent(file.file_name)}`);
+    return createReadStream(file.path).on("error", next).pipe(res);
   } catch (error) { return sendError(error, res, next); }
 }
 

@@ -66,13 +66,24 @@ export async function getApplicationDetails(applicationId, organizationId) {
     `SELECT a.id, a.organization_id, a.candidate_id, a.job_id, a.status,
        a.current_stage, a.decision, a.decision_by, a.decision_at, a.decision_comments, a.applied_at, a.updated_at,
        CONCAT_WS(' ', decision_user.first_name, decision_user.last_name) AS decision_by_name,
-       c.first_name, c.last_name, c.email, c.phone, c.resume_url,
+       c.first_name, c.last_name, c.email, c.phone,
+       (a.resume_url IS NOT NULL) AS has_resume_snapshot,
        c.created_at AS candidate_created_at,
        j.title AS job_title, j.jd_content, j.status AS job_status
      FROM applications a
      INNER JOIN candidates c ON c.id = a.candidate_id AND c.organization_id = a.organization_id
      INNER JOIN jobs j ON j.id = a.job_id AND j.organization_id = a.organization_id
      LEFT JOIN users decision_user ON decision_user.id = a.decision_by AND decision_user.organization_id = a.organization_id
+     WHERE a.id = ? AND a.organization_id = ? LIMIT 1`,
+    [applicationId, organizationId]
+  );
+  return rows[0] ?? null;
+}
+
+export async function getApplicationResumeKey(applicationId, organizationId) {
+  const [rows] = await pool.execute(
+    `SELECT a.resume_url, a.id
+     FROM applications a
      WHERE a.id = ? AND a.organization_id = ? LIMIT 1`,
     [applicationId, organizationId]
   );

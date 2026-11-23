@@ -100,12 +100,22 @@ export async function updateCandidateProfile(candidateId, organizationId, data) 
   return getCandidateProfile(candidateId, organizationId);
 }
 
+export async function updateCandidateResume(candidateId, organizationId, resumeKey) {
+  const [result] = await pool.execute(
+    `UPDATE candidates SET resume_url = ?, updated_at = CURRENT_TIMESTAMP
+     WHERE id = ? AND organization_id = ? AND is_active = 1`,
+    [resumeKey, candidateId, organizationId]
+  );
+  if (!result.affectedRows) return null;
+  return getCandidateProfile(candidateId, organizationId);
+}
+
 export async function createCandidateApplication(candidateId, organizationId, jobId) {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
     const [candidates] = await connection.execute(
-      `SELECT id FROM candidates
+      `SELECT id, resume_url FROM candidates
        WHERE id = ? AND organization_id = ? AND is_active = 1 FOR UPDATE`,
       [candidateId, organizationId]
     );
@@ -125,9 +135,9 @@ export async function createCandidateApplication(candidateId, organizationId, jo
     }
 
     const [result] = await connection.execute(
-      `INSERT INTO applications (organization_id, candidate_id, job_id, status, current_stage)
-       VALUES (?, ?, ?, 'APPLIED', 'APPLICATION')`,
-      [organizationId, candidateId, jobId]
+      `INSERT INTO applications (organization_id, candidate_id, job_id, status, current_stage, resume_url)
+       VALUES (?, ?, ?, 'APPLIED', 'APPLICATION', ?)`,
+      [organizationId, candidateId, jobId, candidates[0].resume_url]
     );
     await connection.execute(
       `INSERT INTO application_status_history

@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   getApplicationDashboardController,
   getApplicationDetailsController,
+  getApplicationResumeFileController,
   getApplicationReviewQueueController,
   getApplicationReviewDetailsController,
   decideOnApplicationController,
@@ -21,6 +22,7 @@ router.use(authenticateManagementToken);
 router.get("/dashboard", authorizeManagementPermission("application.view"), getApplicationDashboardController);
 router.get("/review-queue", authorizeManagementPermission("application.review"), getApplicationReviewQueueController);
 router.get("/:id/review", authorizeManagementPermission("application.review"), getApplicationReviewDetailsController);
+router.get("/:id/resume", authorizeManagementPermission(["application.view", "application.review"]), getApplicationResumeFileController);
 router.post("/:id/decision", authorizeManagementPermission("application.decision"), validateDecisionBody, decideOnApplicationController);
 router.get("/", authorizeManagementPermission("application.view"), listApplicationsController);
 router.get("/:id", authorizeManagementPermission("application.view"), getApplicationDetailsController);

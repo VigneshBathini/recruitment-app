@@ -1,6 +1,8 @@
+import { createReadStream } from "node:fs";
 import {
   getApplicationDashboardService,
   getApplicationDetailsService,
+  getApplicationResumeFileService,
   getApplicationReviewQueueService,
   getApplicationReviewDetailsService,
   decideOnApplicationService,
@@ -33,6 +35,16 @@ export async function getApplicationDetailsController(req, res, next) {
   try {
     const data = await getApplicationDetailsService(req.params.id, req.user.organization_id);
     return res.status(200).json({ success: true, data });
+  } catch (error) { return sendError(error, res, next); }
+}
+
+export async function getApplicationResumeFileController(req, res, next) {
+  try {
+    const file = await getApplicationResumeFileService(req.params.id, req.user.organization_id);
+    res.setHeader("Content-Type", file.mime_type);
+    res.setHeader("Content-Length", file.file_size);
+    res.setHeader("Content-Disposition", `inline; filename*=UTF-8''${encodeURIComponent(file.file_name)}`);
+    return createReadStream(file.path).on("error", next).pipe(res);
   } catch (error) { return sendError(error, res, next); }
 }
 
