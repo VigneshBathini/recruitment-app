@@ -1,6 +1,8 @@
 import pool from "../config/database.js";
 
 const offerDetailsSelect = `SELECT o.*, a.candidate_id, a.job_id, a.status AS application_status,
+       CASE WHEN o.status = 'ISSUED' AND o.expiry_date IS NOT NULL AND o.expiry_date < CURRENT_DATE
+         THEN 'EXPIRED' ELSE o.status END AS effective_status,
        a.decision AS application_decision, a.current_stage,
        c.first_name AS candidate_first_name, c.last_name AS candidate_last_name, c.email AS candidate_email,
        j.title AS job_title
@@ -12,7 +14,11 @@ const offerDetailsSelect = `SELECT o.*, a.candidate_id, a.job_id, a.status AS ap
 export async function listOffers({ organizationId, search, status }) {
   const filters = ["o.organization_id = ?"];
   const values = [organizationId];
-  if (status) { filters.push("o.status = ?"); values.push(status); }
+  if (status === "EXPIRED") {
+    filters.push("o.status = 'ISSUED' AND o.expiry_date IS NOT NULL AND o.expiry_date < CURRENT_DATE");
+  } else if (status === "ISSUED") {
+    filters.push("o.status = 'ISSUED' AND (o.expiry_date IS NULL OR o.expiry_date >= CURRENT_DATE)");
+  } else if (status) { filters.push("o.status = ?"); values.push(status); }
   if (search) {
     filters.push("(c.first_name LIKE ? OR c.last_name LIKE ? OR c.email LIKE ? OR j.title LIKE ? OR CAST(o.application_id AS CHAR) LIKE ?)");
     const term = `%${search}%`;
@@ -67,7 +73,7 @@ export async function createOffer({ organizationId, applicationId, createdBy, te
   try {
     await connection.beginTransaction();
     const [applications] = await connection.execute(
-      `SELECT id, decision FROM applications
+      `SELECT id, decision, status FROM applications
        WHERE id = ? AND organization_id = ? FOR UPDATE`,
       [applicationId, organizationId],
     );
@@ -76,6 +82,9 @@ export async function createOffer({ organizationId, applicationId, createdBy, te
     }
     if (applications[0].decision !== "SELECTED") {
       const error = new Error("An offer can only be created for a SELECTED application"); error.statusCode = 409; throw error;
+    }
+    if (applications[0].status === "WITHDRAWN") {
+      const error = new Error("Offers cannot be created for a withdrawn application"); error.statusCode = 409; throw error;
     }
     const [activeOffers] = await connection.execute(
       `SELECT id FROM offers
@@ -146,10 +155,15 @@ export async function issueOffer(id, organizationId, userId) {
   try {
     await connection.beginTransaction();
     const [rows] = await connection.execute(
-      `SELECT id, status FROM offers WHERE id = ? AND organization_id = ? FOR UPDATE`,
+      `SELECT o.id, o.status, a.status AS application_status
+       FROM offers o JOIN applications a ON a.id = o.application_id AND a.organization_id = o.organization_id
+       WHERE o.id = ? AND o.organization_id = ? FOR UPDATE`,
       [id, organizationId],
     );
     if (!rows[0]) { await connection.rollback(); return null; }
+    if (rows[0].application_status === "WITHDRAWN") {
+      const error = new Error("An offer for a withdrawn application cannot be issued"); error.statusCode = 409; throw error;
+    }
     if (rows[0].status !== "APPROVED") {
       const error = new Error("Only approved offers can be issued"); error.statusCode = 409; throw error;
     }

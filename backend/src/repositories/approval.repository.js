@@ -125,13 +125,20 @@ export async function createApprovalRequest({ organizationId, workflowId, entity
       }
     } else if (entityType === "OFFER") {
       const [offers] = await connection.execute(
-        `SELECT id, status FROM offers WHERE id = ? AND organization_id = ? FOR UPDATE`,
+        `SELECT o.id, o.status, a.status AS application_status
+         FROM offers o JOIN applications a ON a.id = o.application_id AND a.organization_id = o.organization_id
+         WHERE o.id = ? AND o.organization_id = ? FOR UPDATE`,
         [entityId, organizationId]
       );
       const offer = offers[0];
       if (!offer) {
         const error = new Error("Approval entity not found in this organization");
         error.statusCode = 404;
+        throw error;
+      }
+      if (offer.application_status === "WITHDRAWN") {
+        const error = new Error("Offers for withdrawn applications cannot be submitted for approval");
+        error.statusCode = 409;
         throw error;
       }
       if (!["DRAFT", "REJECTED"].includes(offer.status)) {
@@ -242,12 +249,19 @@ export async function decideApprovalRequest({ requestId, organizationId, userId,
     await assertEntityOwnership(connection, request.entity_type, request.entity_id, organizationId);
     if (request.entity_type === "OFFER") {
       const [offers] = await connection.execute(
-        `SELECT id, status FROM offers WHERE id = ? AND organization_id = ? FOR UPDATE`,
+      `SELECT o.id, o.status, a.status AS application_status
+       FROM offers o JOIN applications a ON a.id = o.application_id AND a.organization_id = o.organization_id
+       WHERE o.id = ? AND o.organization_id = ? FOR UPDATE`,
         [request.entity_id, organizationId]
       );
       if (!offers[0]) {
         const error = new Error("Offer not found in this organization");
         error.statusCode = 404;
+        throw error;
+      }
+      if (offers[0].application_status === "WITHDRAWN") {
+        const error = new Error("Offers for withdrawn applications cannot be approved or rejected");
+        error.statusCode = 409;
         throw error;
       }
       if (offers[0].status !== "PENDING_APPROVAL") {

@@ -37,6 +37,11 @@ export async function getOnboardingRecords(params: { search?: string; status?: s
 export async function getOnboardingRecord(id: number) {
   return (await api.get<ApiResponse<OnboardingRecord>>(`/onboarding/${id}`)).data.data;
 }
+
+export type WorkflowHistoryItem = { id: number; entity_type: string; entity_id: number; action: string; field_name: string | null; previous_value: string | null; new_value: string | null; actor_type: string; actor_name: string | null; created_at: string };
+export async function getOnboardingHistory(id: number) {
+  return (await api.get<ApiResponse<WorkflowHistoryItem[]>>(`/onboarding/${id}/history`)).data.data;
+}
 export async function initiateOnboarding(input: { offer_id: number; target_join_date?: string; notes?: string }) {
   return (await api.post<ApiResponse<OnboardingRecord>>('/onboarding', input)).data.data;
 }

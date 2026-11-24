@@ -1,10 +1,7 @@
 
 import axios from "axios";
 import { getToken } from "@/services/token.service";
-
-const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL ??
-  "http://192.168.1.128:5000/api";
+import { API_BASE_URL } from "@/services/api-config";
 
 const api = axios.create({
   baseURL: API_BASE_URL,

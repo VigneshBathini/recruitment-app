@@ -3,6 +3,7 @@ function handle(fn,message){return async(req,res,next)=>{try{const data=await fn
 export const listInterviewsController=handle(req=>service.listService(req.user),"Interviews loaded");
 export const listCandidateInterviewsController=handle(req=>service.candidateListService(req.candidate),"Candidate interviews loaded");
 export const getInterviewController=handle(req=>service.detailService(req.params.id,req.user),"Interview loaded");
+export const getInterviewHistoryController=handle(req=>service.historyService(req.params.id,req.user),"Interview history loaded");
 export const createInterviewController=handle(req=>service.createService(req.body,req.user),"Interview scheduled");
 export const updateInterviewController=handle(req=>service.updateService(req.params.id,req.body,req.user),"Interview updated");
 export const completeInterviewController=handle(req=>service.completeService(req.params.id,req.user),"Interview completed");

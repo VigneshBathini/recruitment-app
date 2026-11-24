@@ -24,7 +24,7 @@ function requiredEntityType(value) {
   if (typeof value !== "string" || !value.trim() || value.trim().length > 50) {
     throw createError("entity_type is required and must be at most 50 characters", 400);
   }
-  return value.trim();
+  return value.trim().toUpperCase();
 }
 
 async function requirePermission(user, permissionNames) {
@@ -36,13 +36,22 @@ async function requirePermission(user, permissionNames) {
 }
 
 const entityPermissions = {
+  JOB_REQUIREMENT: {
+    workflow: "requirement.approve",
+    submit: ["requirement.manage", "requirement.approve"],
+    view: ["requirement.view", "requirement.manage", "requirement.approve"],
+    decide: "requirement.approve",
+  },
   JOB: { workflow: "job.manage", submit: "job.manage", view: ["job.view", "job.manage", "job.approve"], decide: "job.approve" },
   OFFER: { workflow: "offer.manage", submit: "offer.manage", view: ["offer.view", "offer.manage", "offer.approve"], decide: "offer.approve" },
 };
 
 function requireEntityPermission(entityType, action, user) {
+  if (!Object.hasOwn(entityPermissions, entityType)) {
+    throw createError(`Unsupported approval entity type: ${entityType}`, 400);
+  }
   const permission = entityPermissions[entityType]?.[action];
-  if (!permission) return Promise.resolve();
+  if (!permission) throw createError(`Unsupported approval action: ${action}`, 400);
   return requirePermission(user, permission);
 }
 

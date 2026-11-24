@@ -1,11 +1,11 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { openURL } from 'expo-linking';
 import { isAxiosError } from 'axios';
 import { chooseResume, openMyResume, uploadMyResume } from '@/services/candidate-resume.service';
 import { useTheme } from '@/hooks/use-theme';
-import { getCandidateProfile, type CandidateProfile } from '@/services/candidate-auth.service';
+import { getCandidateProfile, updateCandidateProfile, type CandidateProfile } from '@/services/candidate-auth.service';
 import { removeCandidateToken } from '@/services/candidate-session.service';
 import { getMyApplications, type CandidateApplication } from '@/services/candidate-jobs.service';
 import { getMyOffers, isOfferExpired, type CandidateOffer } from '@/services/candidate-offers.service';
@@ -41,6 +41,16 @@ function applicationProgress(application: CandidateApplication) {
   return readable(stage);
 }
 
+type DashboardTheme = ReturnType<typeof useTheme>;
+
+function SectionLoading({ theme }: { theme: DashboardTheme }) {
+  return <View style={styles.sectionState}><ActivityIndicator size="small" color={theme.primary} /><Text style={[styles.subtitle, { color: theme.textSecondary }]}>Loading…</Text></View>;
+}
+
+function SectionError({ message, retry, theme }: { message: string; retry: () => void; theme: DashboardTheme }) {
+  return <View style={styles.sectionState}><Text style={styles.error}>{message}</Text><Pressable accessibilityRole="button" onPress={retry} style={[styles.outlineButton, { borderColor: theme.border, alignSelf: 'flex-start' }]}><Text style={{ color: theme.primary, fontWeight: '700' }}>Retry this section</Text></Pressable></View>;
+}
+
 export default function CandidateDashboardScreen() {
   const theme = useTheme();
   const { width } = useWindowDimensions();
@@ -49,9 +59,16 @@ export default function CandidateDashboardScreen() {
   const [offers, setOffers] = useState<CandidateOffer[]>([]);
   const [interviews, setInterviews] = useState<CandidateInterview[]>([]);
   const [onboarding, setOnboarding] = useState<OnboardingDetails[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [sectionLoading, setSectionLoading] = useState({ profile: true, applications: true, interviews: true, offers: true, onboarding: true });
+  const [sectionErrors, setSectionErrors] = useState<Record<string, string>>({});
   const [refreshing, setRefreshing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [profileEditing, setProfileEditing] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileMessage, setProfileMessage] = useState('');
+  const [profileError, setProfileError] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
   const [resumeBusy, setResumeBusy] = useState(false);
   const [resumeMessage, setResumeMessage] = useState('');
   const [resumeError, setResumeError] = useState(false);
@@ -59,31 +76,55 @@ export default function CandidateDashboardScreen() {
 
   const loadDashboard = useCallback(async (refresh = false) => {
     if (refresh) setRefreshing(true);
-    else setLoading(true);
-    setErrorMessage('');
-    try {
-      const [nextProfile, nextApplications, nextOffers, nextInterviews, onboardingRecords] = await Promise.all([
-        getCandidateProfile(), getMyApplications(), getMyOffers(), getMyInterviews(), getMyOnboarding(),
-      ]);
-      const onboardingDetails = await Promise.all(onboardingRecords.map((record) => getMyOnboardingRecord(record.id)));
-      setProfile(nextProfile);
-      setApplications(nextApplications);
-      setOffers(nextOffers);
-      setInterviews(nextInterviews);
-      setOnboarding(onboardingDetails as OnboardingDetails[]);
-    } catch (error) {
-      if (isAxiosError(error) && error.response?.status === 401) {
-        await removeCandidateToken();
-        router.replace('/candidate-login');
-        return;
-      }
-      const message = isAxiosError(error) ? error.response?.data?.message : null;
-      setErrorMessage(message ?? 'Unable to load your dashboard. Check your connection and try again.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+    const sections = ['profile', 'applications', 'interviews', 'offers', 'onboarding'] as const;
+    setSectionLoading((current) => Object.fromEntries(sections.map((section) => [section, true])) as typeof current);
+    setSectionErrors({});
+    const load = async (section: typeof sections[number], request: () => Promise<void>) => {
+      try { await request(); }
+      catch (error) {
+        if (isAxiosError(error) && error.response?.status === 401) {
+          await removeCandidateToken(); router.replace('/candidate-login'); return;
+        }
+        const message = isAxiosError(error) ? error.response?.data?.message : null;
+        setSectionErrors((current) => ({ ...current, [section]: message ?? `Unable to load ${section}. Check your connection and try again.` }));
+      } finally { setSectionLoading((current) => ({ ...current, [section]: false })); }
+    };
+    await Promise.all([
+      load('profile', async () => { const value = await getCandidateProfile(); setProfile(value); setFirstName(value.first_name); setLastName(value.last_name ?? ''); setPhone(value.phone ?? ''); }),
+      load('applications', async () => setApplications(await getMyApplications())),
+      load('interviews', async () => setInterviews(await getMyInterviews())),
+      load('offers', async () => setOffers(await getMyOffers())),
+      load('onboarding', async () => { const records = await getMyOnboarding(); setOnboarding(await Promise.all(records.map((record) => getMyOnboardingRecord(record.id))) as OnboardingDetails[]); }),
+    ]);
+    setRefreshing(false);
   }, []);
+
+  const retrySection = useCallback((section: 'profile' | 'applications' | 'interviews' | 'offers' | 'onboarding') => {
+    const actions: Record<typeof section, () => Promise<void>> = {
+      profile: async () => { const value = await getCandidateProfile(); setProfile(value); setFirstName(value.first_name); setLastName(value.last_name ?? ''); setPhone(value.phone ?? ''); },
+      applications: async () => setApplications(await getMyApplications()),
+      interviews: async () => setInterviews(await getMyInterviews()),
+      offers: async () => setOffers(await getMyOffers()),
+      onboarding: async () => { const records = await getMyOnboarding(); setOnboarding(await Promise.all(records.map((record) => getMyOnboardingRecord(record.id))) as OnboardingDetails[]); },
+    };
+    setSectionLoading((current) => ({ ...current, [section]: true }));
+    setSectionErrors((current) => { const next = { ...current }; delete next[section]; return next; });
+    void actions[section]().catch((error) => {
+      if (isAxiosError(error) && error.response?.status === 401) { void removeCandidateToken().then(() => router.replace('/candidate-login')); return; }
+      const message = isAxiosError(error) ? error.response?.data?.message : null;
+      setSectionErrors((current) => ({ ...current, [section]: message ?? `Unable to load ${section}. Check your connection and try again.` }));
+    }).finally(() => setSectionLoading((current) => ({ ...current, [section]: false })));
+  }, []);
+
+  async function saveProfile() {
+    if (!firstName.trim()) { setProfileError(true); setProfileMessage('First name is required.'); return; }
+    setProfileSaving(true); setProfileMessage(''); setProfileError(false);
+    try {
+      const updated = await updateCandidateProfile({ first_name: firstName.trim(), last_name: lastName.trim() || null, phone: phone.trim() || null });
+      setProfile(updated); setFirstName(updated.first_name); setLastName(updated.last_name ?? ''); setPhone(updated.phone ?? ''); setProfileEditing(false); setProfileMessage('Profile updated.');
+    } catch (error) { setProfileError(true); setProfileMessage(isAxiosError(error) ? error.response?.data?.message ?? 'Unable to update your profile.' : 'Unable to update your profile.'); }
+    finally { setProfileSaving(false); }
+  }
 
   useFocusEffect(useCallback(() => { void loadDashboard(); }, [loadDashboard]));
 
@@ -141,21 +182,20 @@ export default function CandidateDashboardScreen() {
           </Pressable>
         </View>
 
-        {loading && !profile ? (
-          <View style={styles.state}><ActivityIndicator size="large" color={theme.primary} /><Text style={{ color: theme.textSecondary }}>Loading your dashboard…</Text></View>
-        ) : errorMessage ? (
-          <View style={[styles.stateCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-            <Text style={styles.error}>{errorMessage}</Text>
-            <Pressable accessibilityRole="button" onPress={() => void loadDashboard()} style={[styles.actionButton, { backgroundColor: theme.primary }]}>
-              <Text style={[styles.actionText, { color: theme.primaryText }]}>Try again</Text>
-            </Pressable>
-          </View>
-        ) : profile ? (
-          <>
-            <View style={[styles.profileCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-              <Text style={[styles.welcome, { color: theme.text }]}>Welcome, {profile.first_name}</Text>
+        <>
+          {sectionLoading.profile && !profile ? <View style={styles.state}><ActivityIndicator color={theme.primary} /><Text style={{ color: theme.textSecondary }}>Loading profile…</Text></View> : null}
+          {sectionErrors.profile ? <View style={[styles.stateCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}><Text style={styles.error}>{sectionErrors.profile}</Text><Pressable accessibilityRole="button" onPress={() => retrySection('profile')} style={[styles.actionButton, { backgroundColor: theme.primary }]}><Text style={[styles.actionText, { color: theme.primaryText }]}>Retry profile</Text></Pressable></View> : null}
+          {profile ? <View style={[styles.profileCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+              <View style={styles.cardHeading}><Text style={[styles.welcome, { color: theme.text }]}>{profileEditing ? 'Edit your profile' : `Welcome, ${profile.first_name}`}</Text><Pressable accessibilityRole="button" onPress={() => { setProfileEditing((value) => !value); setProfileMessage(''); setProfileError(false); }} style={[styles.outlineButton, { borderColor: theme.border }]}><Text style={{ color: theme.text }}>{profileEditing ? 'Cancel' : 'Edit profile'}</Text></Pressable></View>
               <Text style={[styles.detail, { color: theme.textSecondary }]}>{profile.email}</Text>
               {profile.organization_slug ? <Text style={[styles.detail, { color: theme.textSecondary }]}>Organization: {profile.organization_slug}</Text> : null}
+              {profileEditing ? <View style={styles.profileForm}>
+                <TextInput accessibilityLabel="First name" value={firstName} onChangeText={setFirstName} placeholder="First name" placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border }]} />
+                <TextInput accessibilityLabel="Last name" value={lastName} onChangeText={setLastName} placeholder="Last name" placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border }]} />
+                <TextInput accessibilityLabel="Phone" value={phone} onChangeText={setPhone} placeholder="Phone" keyboardType="phone-pad" placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border }]} />
+                <Pressable accessibilityRole="button" disabled={profileSaving} onPress={() => void saveProfile()} style={[styles.actionButton, { backgroundColor: theme.primary }, profileSaving && styles.disabled]}><Text style={[styles.actionText, { color: theme.primaryText }]}>{profileSaving ? 'Saving…' : 'Save profile'}</Text></Pressable>
+                {profileMessage ? <Text accessibilityRole="alert" style={{ color: profileError ? theme.danger : theme.success }}>{profileMessage}</Text> : null}
+              </View> : null}
               <View style={[styles.resumePanel, { backgroundColor: theme.background, borderColor: theme.border }]}>
                 <View style={styles.resumeCopy}><Text style={[styles.resumeTitle, { color: theme.text }]}>{profile.resume_url ? 'Resume on your profile' : 'Add a resume to your profile'}</Text><Text style={[styles.detail, { color: theme.textSecondary }]}>{profile.resume_url ? 'Your current resume will be attached to new applications.' : 'Upload a PDF, DOC, or DOCX file up to 10 MB. Existing applications keep their submitted copy.'}</Text></View>
                 <View style={styles.resumeActions}>
@@ -174,8 +214,9 @@ export default function CandidateDashboardScreen() {
                 <Pressable accessibilityRole="button" onPress={() => router.push('/candidate-onboarding')} style={[styles.outlineButton, { borderColor: theme.border }]}><Text style={{ color: theme.text }}>My onboarding</Text></Pressable>
               </View>
             </View>
+          : null}
 
-            {!loading && !errorMessage ? (
+            {(
               <>
                 <View style={styles.sectionHeading}>
                   <View style={styles.heading}><Text style={[styles.sectionTitle, { color: theme.text }]}>Your progress</Text><Text style={[styles.subtitle, { color: theme.textSecondary }]}>Summaries for your applications, offers, and onboarding.</Text></View>
@@ -195,15 +236,15 @@ export default function CandidateDashboardScreen() {
                 </View>
 
                 <View style={[styles.summaryCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-                  <Text style={[styles.sectionTitle, { color: theme.text }]}>Applications by status</Text>
-                  {Object.keys(applicationStatuses).length ? Object.entries(applicationStatuses).map(([status, count]) => <View key={status} style={styles.countRow}><Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>{readable(status)}</Text><Text style={[styles.summaryValue, { color: theme.text }]}>{count}</Text></View>) : <Text style={[styles.subtitle, { color: theme.textSecondary }]}>No application status information yet.</Text>}
+                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Applications by status</Text>
+                  {sectionLoading.applications && !applications.length ? <SectionLoading theme={theme} /> : sectionErrors.applications ? <SectionError message={sectionErrors.applications} retry={() => retrySection('applications')} theme={theme} /> : Object.keys(applicationStatuses).length ? Object.entries(applicationStatuses).map(([status, count]) => <View key={status} style={styles.countRow}><Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>{readable(status)}</Text><Text style={[styles.summaryValue, { color: theme.text }]}>{count}</Text></View>) : <Text style={[styles.subtitle, { color: theme.textSecondary }]}>No application status information yet.</Text>}
                   {Object.keys(stageCounts).length ? <><Text style={[styles.subheading, { color: theme.text }]}>Current stage</Text>{Object.entries(stageCounts).map(([stage, count]) => <View key={stage} style={styles.countRow}><Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>{readable(stage)}</Text><Text style={[styles.summaryValue, { color: theme.text }]}>{count}</Text></View>)}</> : null}
                 </View>
 
                 <View style={styles.columns}>
                   <View style={[styles.summaryCard, styles.column, wide ? styles.columnWide : styles.columnNarrow, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Interviews</Text>
-                    {interviews.length ? interviews.map((interview) => {
+                    {sectionLoading.interviews && !interviews.length ? <SectionLoading theme={theme} /> : sectionErrors.interviews ? <SectionError message={sectionErrors.interviews} retry={() => retrySection('interviews')} theme={theme} /> : interviews.length ? interviews.map((interview) => {
                       const scheduledDate = new Date(interview.scheduled_at);
                       const when = Number.isNaN(scheduledDate.getTime()) ? 'Date unavailable' : scheduledDate.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
                       return <View key={interview.id} style={[styles.listItem, { borderTopColor: theme.border }]}>
@@ -219,7 +260,7 @@ export default function CandidateDashboardScreen() {
 
                   <View style={[styles.summaryCard, styles.column, wide ? styles.columnWide : styles.columnNarrow, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
                     <View style={styles.cardHeading}><Text style={[styles.sectionTitle, { color: theme.text }]}>Recent applications</Text><Pressable onPress={() => router.push('/candidate-applications')}><Text style={{ color: theme.primary, fontWeight: '700' }}>View all</Text></Pressable></View>
-                    {applications.map((application) => {
+                    {sectionLoading.applications && !applications.length ? <SectionLoading theme={theme} /> : sectionErrors.applications ? <SectionError message={sectionErrors.applications} retry={() => retrySection('applications')} theme={theme} /> : applications.map((application) => {
                       const stage = application.current_stage || application.status || 'APPLIED';
                       const activeIndex = stageIndex(stage);
                       const terminal = application.status === 'REJECTED' || application.status === 'HIRED';
@@ -240,21 +281,21 @@ export default function CandidateDashboardScreen() {
                         </View>}
                       </View>;
                     })}
-                    {applications.length === 0 ? <Text style={[styles.subtitle, { color: theme.textSecondary }]}>No applications yet. Browse jobs to get started.</Text> : null}
+                    {!sectionLoading.applications && !sectionErrors.applications && applications.length === 0 ? <Text style={[styles.subtitle, { color: theme.textSecondary }]}>No applications yet. Browse jobs to get started.</Text> : null}
                   </View>
 
                   <View style={[styles.summaryCard, styles.column, wide ? styles.columnWide : styles.columnNarrow, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
                     <View style={styles.cardHeading}><Text style={[styles.sectionTitle, { color: theme.text }]}>Offers</Text><Pressable onPress={() => router.push('/candidate-offers')}><Text style={{ color: theme.primary, fontWeight: '700' }}>View all</Text></Pressable></View>
-                    {offers.slice(0, 3).map((offer) => <Pressable key={offer.id} onPress={() => router.push({ pathname: '/candidate-offer-details', params: { offerId: String(offer.id) } })} style={[styles.listItem, { borderTopColor: theme.border }]}>
+                    {sectionLoading.offers && !offers.length ? <SectionLoading theme={theme} /> : sectionErrors.offers ? <SectionError message={sectionErrors.offers} retry={() => retrySection('offers')} theme={theme} /> : offers.slice(0, 3).map((offer) => <Pressable key={offer.id} onPress={() => router.push({ pathname: '/candidate-offer-details', params: { offerId: String(offer.id) } })} style={[styles.listItem, { borderTopColor: theme.border }]}>
                       <Text style={[styles.itemTitle, { color: theme.text }]}>{offer.job_title}</Text><Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>{readable(offer.status)} · {offer.currency} {offer.annual_ctc}</Text>
                     </Pressable>)}
-                    {offers.length === 0 ? <Text style={[styles.subtitle, { color: theme.textSecondary }]}>No offers are available yet.</Text> : null}
+                    {!sectionLoading.offers && !sectionErrors.offers && offers.length === 0 ? <Text style={[styles.subtitle, { color: theme.textSecondary }]}>No offers are available yet.</Text> : null}
                   </View>
                 </View>
 
                 <View style={[styles.summaryCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
                   <View style={styles.cardHeading}><Text style={[styles.sectionTitle, { color: theme.text }]}>Onboarding</Text><Pressable onPress={() => router.push('/candidate-onboarding')}><Text style={{ color: theme.primary, fontWeight: '700' }}>View all</Text></Pressable></View>
-                  {onboarding.length ? onboarding.map((record) => {
+                  {sectionLoading.onboarding && !onboarding.length ? <SectionLoading theme={theme} /> : sectionErrors.onboarding ? <SectionError message={sectionErrors.onboarding} retry={() => retrySection('onboarding')} theme={theme} /> : onboarding.length ? onboarding.map((record) => {
                     const tasks = record.tasks ?? [];
                     const pendingTasks = tasks.filter((task) => task.status === 'PENDING' || task.status === 'IN_PROGRESS').length;
                     const waitingDocuments = (record.documents ?? []).filter((document) => document.review_status === 'PENDING').length;
@@ -265,11 +306,10 @@ export default function CandidateDashboardScreen() {
                   }) : <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Onboarding progress will appear here when a record is available.</Text>}
                 </View>
 
-                {!hasData ? <View style={[styles.stateCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}><Text style={[styles.itemTitle, { color: theme.text }]}>No recruitment activity yet</Text><Text style={[styles.subtitle, { color: theme.textSecondary }]}>Browse published jobs to find an opportunity and track your progress here.</Text></View> : null}
+                {!Object.values(sectionLoading).some(Boolean) && !Object.keys(sectionErrors).length && !hasData ? <View style={[styles.stateCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}><Text style={[styles.itemTitle, { color: theme.text }]}>No recruitment activity yet</Text><Text style={[styles.subtitle, { color: theme.textSecondary }]}>Browse published jobs to find an opportunity and track your progress here.</Text></View> : null}
               </>
-            ) : null}
+            )}
           </>
-        ) : null}
       </View>
     </ScrollView>
   );
@@ -288,6 +328,9 @@ const styles = StyleSheet.create({
   stateCard: { borderWidth: 1, borderRadius: 17, padding: 20, gap: 12 },
   error: { color: '#B42318', fontSize: 14, lineHeight: 21 },
   profileCard: { borderWidth: 1, borderRadius: 20, padding: 22, gap: 9 },
+  profileForm: { gap: 10, marginVertical: 5 },
+  input: { minHeight: 44, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
+  sectionState: { gap: 10, alignItems: 'flex-start', paddingVertical: 8 },
   welcome: { fontSize: 21, fontWeight: '700' },
   detail: { fontSize: 14 },
   note: { fontSize: 14, lineHeight: 21, marginTop: 5 },

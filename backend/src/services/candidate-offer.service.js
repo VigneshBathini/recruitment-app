@@ -44,5 +44,8 @@ export async function respondToMyOfferService(idValue, candidate, status, commen
   if (result.error === "expired") {
     throw serviceError("The offer response deadline has passed", 409);
   }
+  if (result.error === "application_withdrawn") {
+    throw serviceError("This application has been withdrawn, so the offer can no longer be answered", 409);
+  }
   return result.offer;
 }

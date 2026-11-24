@@ -10,6 +10,7 @@ import {
   moveApplicationToStageService,
   rejectApplicationService,
   shortlistApplicationService,
+  withdrawManagedApplicationService,
 } from "../services/application.service.js";
 
 function sendError(error, res, next) {
@@ -98,6 +99,16 @@ export async function rejectApplicationController(req, res, next) {
   try {
     const data = await rejectApplicationService(req.params.id, req.body, req.user);
     return res.status(200).json({ success: true, message: "Application rejected", data });
+  } catch (error) { return sendError(error, res, next); }
+}
+
+export async function withdrawManagedApplicationController(req, res, next) {
+  if (!req.body || typeof req.body !== "object" || Array.isArray(req.body) || typeof req.body.reason !== "string") {
+    return res.status(400).json({ success: false, message: "A withdrawal reason is required" });
+  }
+  try {
+    const data = await withdrawManagedApplicationService(req.params.id, req.body, req.user);
+    return res.status(200).json({ success: true, message: "Application withdrawal recorded", data });
   } catch (error) { return sendError(error, res, next); }
 }
 

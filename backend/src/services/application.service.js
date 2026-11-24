@@ -7,6 +7,7 @@ import {
   decideOnApplication,
   listApplications,
   updateApplicationProgress,
+  withdrawApplication,
 } from "../repositories/application.repository.js";
 import { getCandidateResumeFile } from "./candidate-resume-storage.js";
 
@@ -32,7 +33,7 @@ export function parseApplicationListQuery(query) {
   const search = query.search ? String(query.search).trim().slice(0, 150) : undefined;
   if (!Number.isSafeInteger(page) || page < 1) throw serviceError("page must be a positive integer", 400);
   if (!Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 100) throw serviceError("page_size must be between 1 and 100", 400);
-  if (status && !["APPLIED", "SCREENING", "SHORTLISTED", "REJECTED", "HIRED"].includes(status)) throw serviceError("Unsupported application status filter", 400);
+  if (status && !["APPLIED", "SCREENING", "SHORTLISTED", "REJECTED", "WITHDRAWN", "HIRED"].includes(status)) throw serviceError("Unsupported application status filter", 400);
   if (stage && !stages.has(stage)) throw serviceError("Unsupported screening stage filter", 400);
   return { page, pageSize, status, stage, search, offset: (page - 1) * pageSize };
 }
@@ -109,6 +110,7 @@ async function changeProgress(idValue, data, user, targetStatus, targetStage) {
     status: targetStatus,
     stage: targetStage,
     decisionComments,
+    reason: typeof data.comments === "string" ? data.comments.trim() || null : null,
   });
   if (!application) throw serviceError("Application not found", 404);
   return application;
@@ -126,4 +128,38 @@ export function shortlistApplicationService(id, data, user) {
 
 export function rejectApplicationService(id, data, user) {
   return changeProgress(id, data, user, "REJECTED", "REJECTED");
+}
+
+function withdrawalReason(data) {
+  const reason = typeof data?.reason === "string" ? data.reason.trim() : "";
+  if (!reason) throw serviceError("A withdrawal reason is required", 400);
+  if (reason.length > 5000) throw serviceError("Withdrawal reason cannot exceed 5000 characters", 400);
+  return reason;
+}
+
+async function withdraw({ id, organizationId, actorId, actorType, candidateId, data }) {
+  const result = await withdrawApplication({
+    applicationId: parseId(id), organizationId, actorId, actorType, candidateId,
+    reason: withdrawalReason(data),
+  });
+  const errors = {
+    not_found: ["Application not found", 404],
+    hired: ["A hired application cannot be withdrawn", 409],
+    accepted_offer: ["After offer acceptance, contact the recruiter to record your withdrawal", 409],
+    not_withdrawable: ["This application can no longer be withdrawn", 409],
+    onboarding_transition: ["The onboarding record cannot be cancelled from its current status", 409],
+  };
+  if (result.error) {
+    const [message, statusCode] = errors[result.error] ?? ["Unable to withdraw this application", 409];
+    throw serviceError(message, statusCode);
+  }
+  return result;
+}
+
+export function withdrawCandidateApplicationService(id, data, candidate) {
+  return withdraw({ id, organizationId: candidate.organization_id, candidateId: candidate.id, actorId: candidate.id, actorType: "CANDIDATE", data });
+}
+
+export function withdrawManagedApplicationService(id, data, user) {
+  return withdraw({ id, organizationId: user.organization_id, actorId: user.id, actorType: "MANAGEMENT_USER", data });
 }

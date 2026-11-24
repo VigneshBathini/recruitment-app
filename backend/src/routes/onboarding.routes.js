@@ -1,7 +1,7 @@
 import { Router } from "express";
 import {
   completeOnboardingController, createOnboardingController, createOnboardingTaskController,
-  getOnboardingController, getOnboardingDashboardController,
+  getOnboardingController, getOnboardingDashboardController, getOnboardingHistoryController,
   getOnboardingDocumentFileController, listOnboardingController,
   listOnboardingTasksController, reviewOnboardingDocumentController,
   updateOnboardingController, updateOnboardingTaskController,
@@ -25,6 +25,7 @@ router.post("/:id/complete", authorizeManagementPermission("onboarding.complete"
 router.patch("/tasks/:taskId", authorizeManagementPermission("onboarding.manage"), updateOnboardingTaskController);
 router.post("/documents/:documentId/review", authorizeManagementPermission("onboarding.document.review"), reviewOnboardingDocumentController);
 router.get("/documents/:documentId/file", authorizeManagementPermission(["onboarding.view", "onboarding.document.review"]), getOnboardingDocumentFileController);
+router.get("/:id/history", authorizeManagementPermission(["onboarding.view", "onboarding.manage", "onboarding.complete"]), getOnboardingHistoryController);
 router.get("/:id/tasks", authorizeManagementPermission(["onboarding.view", "onboarding.manage", "onboarding.complete"]), listOnboardingTasksController);
 router.post("/:id/tasks", authorizeManagementPermission("onboarding.manage"), createOnboardingTaskController);
 router.get("/:id", authorizeManagementPermission(["onboarding.view", "onboarding.manage", "onboarding.complete"]), getOnboardingController);

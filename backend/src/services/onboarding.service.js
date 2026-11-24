@@ -3,7 +3,7 @@ import {
   createCandidateDocument, createOnboardingRecord, createOnboardingTask,
   completeOnboardingAndHire,
   getOnboardingDashboard, getOnboardingDocumentStorage, getOnboardingRecord,
-  listOnboardingDocuments, listOnboardingRecords, listOnboardingTasks,
+  listOnboardingDocuments, listOnboardingHistory, listOnboardingRecords, listOnboardingTasks,
   reviewCandidateDocument, updateOnboardingRecord, updateOnboardingTask,
 } from "../repositories/onboarding.repository.js";
 import { removeOnboardingDocument, resolveOnboardingDocument, storeOnboardingDocument } from "./onboarding-file-storage.js";
@@ -47,6 +47,17 @@ export async function getOnboardingService(idValue, user, candidateId = null) {
   return { ...record, tasks, documents: documents.map((document) => addDownloadUrl(document, candidateId != null)) };
 }
 
+export async function getOnboardingHistoryService(idValue, user) {
+  const permissions = await getPermissionsByRoleId(user.organization_id, user.role_id);
+  if (!permissions.some((permission) => ["onboarding.view", "onboarding.manage", "onboarding.complete"].includes(permission.name))) {
+    throw serviceError("Missing required onboarding history permission", 403);
+  }
+  const id = parseOnboardingId(idValue);
+  const record = await getOnboardingRecord(id, user.organization_id);
+  if (!record) throw serviceError("Onboarding record not found", 404);
+  return listOnboardingHistory(id, user.organization_id);
+}
+
 export async function createOnboardingService(data, user) {
   const result = await createOnboardingRecord({
     organizationId: user.organization_id, offerId: data.offer_id, userId: user.id,
@@ -59,7 +70,7 @@ export async function createOnboardingService(data, user) {
 }
 
 export async function updateOnboardingService(idValue, data, user) {
-  const result = await updateOnboardingRecord(parseOnboardingId(idValue), user.organization_id, data);
+  const result = await updateOnboardingRecord(parseOnboardingId(idValue), user.organization_id, { ...data, actorId: user.id });
   if (result.error === "not_found") throw serviceError("Onboarding record not found", 404);
   if (result.error === "invalid_transition") throw serviceError("Onboarding status transition is not allowed", 409);
   return getOnboardingService(idValue, user);
@@ -87,7 +98,7 @@ export async function completeOnboardingService(idValue, user) {
 }
 
 export async function createOnboardingTaskService(idValue, data, user) {
-  const result = await createOnboardingTask(parseOnboardingId(idValue), user.organization_id, data);
+  const result = await createOnboardingTask(parseOnboardingId(idValue), user.organization_id, data, user.id);
   if (result.error === "onboarding_not_found") throw serviceError("Onboarding record not found", 404);
   if (result.error === "invalid_candidate_assignee") throw serviceError("Candidate assignee must be this onboarding candidate in the same organization", 400);
   if (result.error === "invalid_user_assignee") throw serviceError("Employee assignee must be active, belong to this organization, and have onboarding.manage", 400);

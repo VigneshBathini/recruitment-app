@@ -19,6 +19,7 @@ export type CandidateApplication = {
   current_stage: string | null;
   applied_at: string;
   updated_at: string;
+  has_accepted_offer?: boolean | number;
 };
 
 type ApplicationsResponse = { success: boolean; data: CandidateApplication[] };
@@ -44,5 +45,12 @@ export async function applyToPublishedJob(jobId: number): Promise<number> {
 
 export async function getMyApplications(): Promise<CandidateApplication[]> {
   const response = await candidateApi.get<ApplicationsResponse>('/candidates/me/applications');
+  return response.data.data;
+}
+
+export async function withdrawMyApplication(applicationId: number, reason: string): Promise<CandidateApplication> {
+  const response = await candidateApi.post<{ success: boolean; data: CandidateApplication }>(
+    `/candidates/me/applications/${applicationId}/withdraw`, { reason },
+  );
   return response.data.data;
 }

@@ -10,7 +10,7 @@ export type CandidateOffer = {
   start_date: string;
   expiry_date: string | null;
   offer_letter_url: string | null;
-  status: 'ISSUED' | 'ACCEPTED' | 'DECLINED' | string;
+  status: 'ISSUED' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | string;
   issued_at: string | null;
   candidate_responded_at: string | null;
   candidate_response_comments: string | null;

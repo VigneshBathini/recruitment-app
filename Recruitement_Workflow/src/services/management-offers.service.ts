@@ -1,7 +1,7 @@
 import api from '@/services/api';
 import type { ApplicationPage, ManagedApplication } from '@/services/application-management.service';
 
-export type ManagementOfferStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'ISSUED' | 'ACCEPTED' | 'DECLINED' | string;
+export type ManagementOfferStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'ISSUED' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | string;
 export type OfferAction = { id: number; step_order: number; approver_name?: string | null; action: string; comments?: string | null; action_at?: string | null };
 export type OfferApprovalRequest = { id: number; approval_workflow_id: number; workflow_name?: string; status: string; current_step: number; actions: OfferAction[] };
 export type ManagementOffer = {

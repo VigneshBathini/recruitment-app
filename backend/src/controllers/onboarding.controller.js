@@ -2,7 +2,7 @@ import { createReadStream } from "node:fs";
 import {
   createOnboardingService, createOnboardingTaskService,
   completeOnboardingService,
-  getOnboardingDashboardService, getOnboardingDocumentFileService, getOnboardingService,
+  getOnboardingDashboardService, getOnboardingDocumentFileService, getOnboardingHistoryService, getOnboardingService,
   listCandidateDocumentsService, listCandidateOnboardingService, listCandidateTasksService,
   listOnboardingService, reviewOnboardingDocumentService, updateCandidateTaskService,
   updateOnboardingService, updateOnboardingTaskService, uploadCandidateDocumentService,
@@ -37,6 +37,11 @@ export async function listOnboardingController(req, res, next) {
 
 export async function getOnboardingController(req, res, next) {
   try { return res.status(200).json({ success: true, data: await getOnboardingService(req.params.id, req.user) }); }
+  catch (error) { return sendError(error, res, next); }
+}
+
+export async function getOnboardingHistoryController(req, res, next) {
+  try { return res.status(200).json({ success: true, data: await getOnboardingHistoryService(req.params.id, req.user) }); }
   catch (error) { return sendError(error, res, next); }
 }
 

@@ -76,8 +76,8 @@ export async function loginService({
   }
 
   if (Number(user.organization_is_active) !== 1) {
-    const error = new Error("This organization is inactive");
-    error.statusCode = 403;
+    const error = new Error("Invalid organization, email, or password");
+    error.statusCode = 401;
     throw error;
   }
 

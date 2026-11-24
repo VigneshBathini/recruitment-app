@@ -63,6 +63,28 @@ export async function getOnboardingRecord(id, organizationId, candidateId = null
   return rows[0] ?? null;
 }
 
+export async function listOnboardingHistory(onboardingId, organizationId) {
+  const [rows] = await pool.execute(
+    `SELECT h.id, h.entity_type, h.entity_id, h.action, h.field_name,
+       h.previous_value, h.new_value, h.actor_type, h.created_at,
+       CASE WHEN h.actor_type = 'CANDIDATE' THEN CONCAT_WS(' ', c.first_name, c.last_name)
+            ELSE CONCAT_WS(' ', u.first_name, u.last_name) END AS actor_name
+     FROM workflow_history h
+     JOIN onboarding_records ob ON ob.id = ? AND ob.organization_id = h.organization_id
+     LEFT JOIN users u ON h.actor_type = 'MANAGEMENT_USER' AND u.id = h.actor_id AND u.organization_id = h.organization_id
+     LEFT JOIN candidates c ON h.actor_type = 'CANDIDATE' AND c.id = h.actor_id AND c.organization_id = h.organization_id
+     WHERE h.organization_id = ? AND (
+       (h.entity_type = 'ONBOARDING' AND h.entity_id = ob.id) OR
+       (h.entity_type = 'ONBOARDING_TASK' AND EXISTS (
+         SELECT 1 FROM onboarding_tasks t WHERE t.id = h.entity_id
+           AND t.onboarding_id = ob.id AND t.organization_id = ob.organization_id
+       ))
+     ) ORDER BY h.created_at ASC, h.id ASC`,
+    [onboardingId, organizationId],
+  );
+  return rows;
+}
+
 export async function createOnboardingRecord({ organizationId, offerId, userId, targetJoinDate, notes }) {
   const connection = await pool.getConnection();
   try {
@@ -89,6 +111,12 @@ export async function createOnboardingRecord({ organizationId, offerId, userId, 
        VALUES (?, ?, ?, ?, 'INITIATED', ?, ?, ?)`,
       [organizationId, offerId, offer.application_id, offer.candidate_id, targetJoinDate ?? offer.start_date, userId, notes ?? null],
     );
+    await connection.execute(
+      `INSERT INTO workflow_history
+       (organization_id, entity_type, entity_id, action, field_name, previous_value, new_value, actor_type, actor_id)
+       VALUES (?, 'ONBOARDING', ?, 'CREATED', 'status', NULL, 'INITIATED', 'MANAGEMENT_USER', ?)`,
+      [organizationId, result.insertId, userId],
+    );
     await connection.commit();
     return { id: result.insertId };
   } catch (error) {
@@ -113,6 +141,12 @@ export async function updateOnboardingRecord(id, organizationId, changes) {
         await connection.rollback();
         return { error: "invalid_transition" };
       }
+      await connection.execute(
+        `INSERT INTO workflow_history
+         (organization_id, entity_type, entity_id, action, field_name, previous_value, new_value, actor_type, actor_id)
+         VALUES (?, 'ONBOARDING', ?, 'STATUS_CHANGED', 'status', ?, ?, 'MANAGEMENT_USER', ?)`,
+        [organizationId, id, record.status, changes.status, changes.actorId],
+      );
     }
     const fields = [];
     const values = [];
@@ -138,7 +172,7 @@ export async function completeOnboardingAndHire(id, organizationId, userId) {
     const [rows] = await connection.execute(
       `SELECT ob.id AS onboarding_id, ob.organization_id, ob.application_id,
          ob.status AS onboarding_status,
-         a.status AS application_status, a.decision,
+         a.status AS application_status, a.current_stage AS application_stage, a.decision,
          o.status AS offer_status
        FROM onboarding_records ob
        INNER JOIN applications a ON a.id = ob.application_id AND a.organization_id = ob.organization_id
@@ -167,16 +201,32 @@ export async function completeOnboardingAndHire(id, organizationId, userId) {
     }
     await connection.execute(
       `INSERT INTO application_status_history
-       (application_id, from_status, to_status, changed_by)
-       VALUES (?, ?, 'HIRED', ?)`,
-      [record.application_id, record.application_status, userId],
+       (application_id, from_status, to_status, changed_by, actor_type, actor_id)
+       VALUES (?, ?, 'HIRED', ?, 'MANAGEMENT_USER', ?)`,
+      [record.application_id, record.application_status, userId, userId],
     );
+    if (record.application_stage !== "HIRED") {
+      await connection.execute(
+        `INSERT INTO workflow_history
+         (organization_id, entity_type, entity_id, action, field_name, previous_value, new_value, actor_type, actor_id, reason)
+         VALUES (?, 'APPLICATION', ?, 'STAGE_CHANGED', 'current_stage', ?, 'HIRED', 'MANAGEMENT_USER', ?, NULL)`,
+        [organizationId, record.application_id, record.application_stage, userId],
+      );
+    }
     const [onboardingUpdate] = await connection.execute(
       `UPDATE onboarding_records SET status = 'COMPLETED', completed_at = COALESCE(completed_at, CURRENT_TIMESTAMP)
        WHERE id = ? AND organization_id = ? AND status IN ('READY_TO_JOIN', 'COMPLETED')`,
       [record.onboarding_id, organizationId],
     );
     if (onboardingUpdate.affectedRows !== 1) throw new Error("Unable to complete onboarding record");
+    if (record.onboarding_status !== "COMPLETED") {
+      await connection.execute(
+        `INSERT INTO workflow_history
+         (organization_id, entity_type, entity_id, action, field_name, previous_value, new_value, actor_type, actor_id)
+         VALUES (?, 'ONBOARDING', ?, 'STATUS_CHANGED', 'status', ?, 'COMPLETED', 'MANAGEMENT_USER', ?)`,
+        [organizationId, record.onboarding_id, record.onboarding_status, userId],
+      );
+    }
 
     const [onboardingRows] = await connection.execute(
       `${onboardingSelect} WHERE ob.id = ? AND ob.organization_id = ? LIMIT 1`,
@@ -206,7 +256,7 @@ export async function listOnboardingTasks(onboardingId, organizationId, candidat
   return rows;
 }
 
-export async function createOnboardingTask(onboardingId, organizationId, data) {
+export async function createOnboardingTask(onboardingId, organizationId, data, actorId) {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
@@ -242,6 +292,12 @@ export async function createOnboardingTask(onboardingId, organizationId, data) {
       [organizationId, onboardingId, data.title, data.description ?? null,
         data.assigned_to_candidate_id ?? null, data.assigned_to_user_id ?? null, data.due_date ?? null],
     );
+    await connection.execute(
+      `INSERT INTO workflow_history
+       (organization_id, entity_type, entity_id, action, field_name, previous_value, new_value, actor_type, actor_id)
+       VALUES (?, 'ONBOARDING_TASK', ?, 'CREATED', 'status', NULL, 'PENDING', 'MANAGEMENT_USER', ?)`,
+      [organizationId, result.insertId, actorId],
+    );
     await connection.commit();
     return { id: result.insertId };
   } catch (error) { await connection.rollback(); throw error; }
@@ -267,6 +323,16 @@ export async function updateOnboardingTask(taskId, organizationId, changes, acto
     }
     if (changes.status && task.status !== changes.status && !canTransitionOnboardingTaskStatus(task.status, changes.status)) {
       await connection.rollback(); return { error: "invalid_transition" };
+    }
+    if (changes.status && task.status !== changes.status) {
+      const actorType = actor.candidateId != null ? "CANDIDATE" : "MANAGEMENT_USER";
+      const actorId = actor.candidateId ?? actor.userId;
+      await connection.execute(
+        `INSERT INTO workflow_history
+         (organization_id, entity_type, entity_id, action, field_name, previous_value, new_value, actor_type, actor_id)
+         VALUES (?, 'ONBOARDING_TASK', ?, 'STATUS_CHANGED', 'status', ?, ?, ?, ?)`,
+        [organizationId, taskId, task.status, changes.status, actorType, actorId],
+      );
     }
     const candidateAssignee = Object.hasOwn(changes, "assigned_to_candidate_id") ? changes.assigned_to_candidate_id : task.assigned_to_candidate_id;
     const userAssignee = Object.hasOwn(changes, "assigned_to_user_id") ? changes.assigned_to_user_id : task.assigned_to_user_id;

@@ -6,8 +6,9 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 import { useTheme } from '@/hooks/use-theme';
 import { getToken } from '@/services/token.service';
-import { completeOnboarding, createOnboardingTask, getOnboardingDocumentFile, getOnboardingRecord, reviewOnboardingDocument, updateOnboarding, updateOnboardingTask, type OnboardingRecord, type OnboardingTask, type OnboardingStatus } from '@/services/onboarding-management.service';
+import { completeOnboarding, createOnboardingTask, getOnboardingDocumentFile, getOnboardingHistory, getOnboardingRecord, reviewOnboardingDocument, updateOnboarding, updateOnboardingTask, type OnboardingRecord, type OnboardingTask, type OnboardingStatus, type WorkflowHistoryItem } from '@/services/onboarding-management.service';
 import { getCurrentOrganizationUser } from '@/services/auth.service';
+import { API_BASE_URL } from '@/services/api-config';
 
 function dateLabel(value: string | null) { return value ? new Date(`${value.slice(0, 10)}T00:00:00`).toLocaleDateString() : 'Not set'; }
 
@@ -16,6 +17,7 @@ export default function OnboardingDetailsScreen() {
   const params = useLocalSearchParams<{ onboardingId?: string }>();
   const id = Number(params.onboardingId);
   const [record, setRecord] = useState<OnboardingRecord | null>(null);
+  const [history, setHistory] = useState<WorkflowHistoryItem[]>([]);
   const [joinDate, setJoinDate] = useState('');
   const [notes, setNotes] = useState('');
   const [taskTitle, setTaskTitle] = useState('');
@@ -33,7 +35,7 @@ export default function OnboardingDetailsScreen() {
   const load = useCallback(async (refresh = false) => {
     if (!Number.isSafeInteger(id) || id <= 0) { setError('Invalid onboarding ID.'); setLoading(false); return; }
     refresh ? setRefreshing(true) : setLoading(true); setError('');
-    try { const [item, user] = await Promise.all([getOnboardingRecord(id), getCurrentOrganizationUser()]); setRecord(item); setCanComplete(user.permissions.includes('onboarding.complete')); setJoinDate(item.target_join_date?.slice(0, 10) ?? ''); setNotes(item.notes ?? ''); }
+    try { const [item, user] = await Promise.all([getOnboardingRecord(id), getCurrentOrganizationUser()]); setRecord(item); setCanComplete(user.permissions.includes('onboarding.complete')); const canViewHistory = ['onboarding.view', 'onboarding.manage', 'onboarding.complete'].some((permission) => user.permissions.includes(permission)); setHistory(canViewHistory ? await getOnboardingHistory(id) : []); setJoinDate(item.target_join_date?.slice(0, 10) ?? ''); setNotes(item.notes ?? ''); }
     catch (problem) { setError((isAxiosError(problem) ? problem.response?.data?.message : null) ?? 'Unable to load onboarding details.'); }
     finally { setLoading(false); setRefreshing(false); }
   }, [id]);
@@ -70,9 +72,8 @@ export default function OnboardingDetailsScreen() {
         window.open(url, '_blank', 'noopener,noreferrer');
         setTimeout(() => URL.revokeObjectURL(url), 60_000);
       } else {
-        const base = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.1.128:5000/api';
         const target = `${FileSystem.cacheDirectory}${encodeURIComponent(fileName)}`;
-        const response = await FileSystem.downloadAsync(`${base}/onboarding/documents/${documentId}/file`, target, { headers: { Authorization: `Bearer ${token}` } });
+        const response = await FileSystem.downloadAsync(`${API_BASE_URL}/onboarding/documents/${documentId}/file`, target, { headers: { Authorization: `Bearer ${token}` } });
         if (response.status < 200 || response.status >= 300) throw new Error('Unable to download document');
         await Linking.openURL(response.uri);
       }
@@ -95,6 +96,7 @@ export default function OnboardingDetailsScreen() {
           {record.status !== 'COMPLETED' && record.status !== 'CANCELLED' ? <View style={[styles.item, { borderColor: theme.border }]}><Text style={[styles.itemTitle, { color: theme.text }]}>Add a task</Text><TextInput value={taskTitle} onChangeText={setTaskTitle} placeholder="Task title" placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border }]} /><TextInput value={taskDescription} onChangeText={setTaskDescription} placeholder="Description (optional)" placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border }]} /><TextInput keyboardType="number-pad" value={candidateAssignee} onChangeText={setCandidateAssignee} placeholder={`Candidate ID (onboarding candidate ${record.candidate_id})`} placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border }]} /><TextInput keyboardType="number-pad" value={employeeAssignee} onChangeText={setEmployeeAssignee} placeholder="HR employee user ID" placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border }]} /><TextInput value={taskDueDate} onChangeText={setTaskDueDate} placeholder="Due date (YYYY-MM-DD)" placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border }]} /><Pressable disabled={busy} onPress={() => void addTask()} style={[styles.button, { backgroundColor: theme.primary, alignSelf: 'flex-start' }]}><Text style={{ color: theme.primaryText, fontWeight: '700' }}>Create task</Text></Pressable></View> : null}
         </View>
         <View style={cardStyle}><Text style={[styles.sectionTitle, { color: theme.text }]}>Candidate documents</Text>{record.documents?.length ? record.documents.map((document) => <View key={document.id} style={[styles.item, { borderColor: theme.border }]}><Text style={[styles.itemTitle, { color: theme.text }]}>{document.document_type} · {document.file_name}</Text><Text style={{ color: theme.primary, fontWeight: '700' }}>{document.review_status}{document.is_primary ? ' · Current' : ''}</Text><Text style={{ color: theme.textSecondary }}>Uploaded {dateLabel(document.uploaded_at)}{document.reviewer_name ? ` · Reviewed by ${document.reviewer_name}` : ''}</Text><Pressable onPress={() => void openDocument(document.id, document.file_name)}><Text style={{ color: theme.primary, fontWeight: '700' }}>Open document</Text></Pressable>{document.rejection_reason ? <Text style={styles.error}>Reason: {document.rejection_reason}</Text> : null}{document.review_status !== 'VERIFIED' ? <><TextInput value={reviewReasons[document.id] ?? ''} onChangeText={(value) => setReviewReasons((current) => ({ ...current, [document.id]: value }))} placeholder="Rejection reason (required to reject)" placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border }]} /><View style={styles.actions}><Pressable disabled={busy} onPress={() => void reviewDoc(document.id, 'VERIFIED')} style={[styles.button, { backgroundColor: theme.primary }]}><Text style={{ color: theme.primaryText, fontWeight: '700' }}>Verify</Text></Pressable><Pressable disabled={busy} onPress={() => void reviewDoc(document.id, 'REJECTED')} style={[styles.outline, { borderColor: theme.border }]}><Text style={{ color: theme.text }}>Reject</Text></Pressable></View></> : null}</View>) : <Text style={{ color: theme.textSecondary }}>No documents uploaded.</Text>}</View>
+        <View style={cardStyle}><Text style={[styles.sectionTitle, { color: theme.text }]}>History</Text>{history.length ? history.map((entry) => <View key={entry.id} style={[styles.item, { borderColor: theme.border }]}><Text style={[styles.itemTitle, { color: theme.text }]}>{entry.entity_type === 'ONBOARDING_TASK' ? 'Task' : 'Onboarding'} · {entry.action.replace(/_/g, ' ')}</Text><Text style={{ color: theme.textSecondary }}>{entry.previous_value ? `${entry.previous_value} → ` : ''}{entry.new_value ?? ''}</Text><Text style={{ color: theme.textSecondary }}>{entry.actor_name || entry.actor_type} · {new Date(entry.created_at).toLocaleString()}</Text></View>) : <Text style={{ color: theme.textSecondary }}>No onboarding history yet.</Text>}</View>
       </>}
       {error && record ? <Text style={styles.error}>{error}</Text> : null}
     </View>

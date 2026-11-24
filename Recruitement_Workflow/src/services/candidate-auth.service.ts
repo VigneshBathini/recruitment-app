@@ -50,6 +50,11 @@ export async function getCandidateProfile(): Promise<CandidateProfile> {
   return response.data.data;
 }
 
+export async function updateCandidateProfile(input: Pick<CandidateProfile, 'first_name' | 'last_name' | 'phone'>): Promise<CandidateProfile> {
+  const response = await candidateApi.put<CandidateProfileResponse>('/candidates/me', input);
+  return response.data.data;
+}
+
 export async function updateCandidatePhone(phone: string): Promise<CandidateProfile> {
   const response = await candidateApi.put<CandidateProfileResponse>('/candidates/me', { phone });
   return response.data.data;

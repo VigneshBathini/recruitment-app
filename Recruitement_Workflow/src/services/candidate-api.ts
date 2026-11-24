@@ -1,9 +1,6 @@
 import { create } from 'axios';
 import { getCandidateToken } from '@/services/candidate-session.service';
-
-const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL ??
-  'http://192.168.1.128:5000/api';
+import { API_BASE_URL } from '@/services/api-config';
 
 const candidateApi = create({
   baseURL: API_BASE_URL,

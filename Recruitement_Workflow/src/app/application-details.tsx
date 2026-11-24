@@ -1,10 +1,10 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { isAxiosError } from 'axios';
 import { useTheme } from '@/hooks/use-theme';
 import { getCurrentOrganizationUser } from '@/services/auth.service';
-import { accessApplicationResume, getApplicationDetails, moveApplicationStage, rejectApplication, shortlistApplication, type ManagedApplication } from '@/services/application-management.service';
+import { accessApplicationResume, getApplicationDetails, moveApplicationStage, rejectApplication, shortlistApplication, withdrawManagedApplication, type ManagedApplication } from '@/services/application-management.service';
 
 const stageOptions = ['SCREENING', 'PHONE_SCREEN', 'TECHNICAL_INTERVIEW', 'HR_INTERVIEW', 'OFFER'];
 const label = (value: string) => value.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -22,6 +22,8 @@ export default function ApplicationDetailsScreen() {
   const [notice, setNotice] = useState('');
   const [comments, setComments] = useState('');
   const [resumeBusy, setResumeBusy] = useState(false);
+  const [withdrawReason, setWithdrawReason] = useState('');
+  const [confirmWithdrawal, setConfirmWithdrawal] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -58,6 +60,23 @@ export default function ApplicationDetailsScreen() {
     } finally { setSaving(false); }
   }
 
+  async function performWithdrawal() {
+    setSaving(true);
+    setError('');
+    setNotice('');
+    try {
+      const next = await withdrawManagedApplication(id, withdrawReason.trim());
+      setApplication(next);
+      setConfirmWithdrawal(false);
+      setWithdrawReason('');
+      setNotice('Candidate withdrawal recorded. The application and onboarding history have been preserved.');
+    } catch (cause) {
+      const message = isAxiosError(cause) ? cause.response?.data?.message : null;
+      setError(message ?? 'Unable to withdraw this application. Please try again.');
+      setConfirmWithdrawal(false);
+    } finally { setSaving(false); }
+  }
+
   const card = { backgroundColor: theme.backgroundElement, borderColor: theme.border };
   return (
     <ScrollView contentContainerStyle={[styles.content, { backgroundColor: theme.background }]}>
@@ -89,7 +108,7 @@ export default function ApplicationDetailsScreen() {
             {application.decision ? <View style={[styles.commentBox, { borderColor: theme.border }]}><Text style={[styles.text, { color: theme.textSecondary }]}>Decision</Text><Text style={[styles.text, { color: theme.text }]}>{label(application.decision)}</Text></View> : null}
             {application.decision_comments ? <View style={[styles.commentBox, { borderColor: theme.border }]}><Text style={[styles.text, { color: theme.textSecondary }]}>Decision comments</Text><Text style={[styles.text, { color: theme.text }]}>{application.decision_comments}</Text></View> : null}
           </View>
-          {canManage && !['SHORTLISTED', 'REJECTED', 'HIRED'].includes(application.status) ? <View style={[styles.card, card]}>
+          {canManage && !['SHORTLISTED', 'REJECTED', 'WITHDRAWN', 'HIRED'].includes(application.status) ? <View style={[styles.card, card]}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Recruiter actions</Text>
             <Text style={[styles.text, { color: theme.textSecondary }]}>Move through screening stages</Text>
             <View style={styles.stageList}>{stageOptions.map((stage) => <Pressable key={stage} accessibilityRole="button" disabled={saving} onPress={() => void perform('stage', stage)} style={[styles.stageButton, { borderColor: theme.border, backgroundColor: application.current_stage === stage ? theme.primaryMuted : theme.backgroundElement }]}><Text style={{ color: application.current_stage === stage ? theme.primary : theme.text }}>{label(stage)}</Text></Pressable>)}</View>
@@ -102,15 +121,42 @@ export default function ApplicationDetailsScreen() {
             {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
             {notice ? <Text style={[styles.notice, { color: theme.primary }]}>{notice}</Text> : null}
           </View> : null}
+          {canManage && !['REJECTED', 'WITHDRAWN', 'HIRED'].includes(application.status) ? <View style={[styles.card, card]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Record candidate withdrawal</Text>
+            <Text style={[styles.text, { color: theme.textSecondary }]}>Use this when the candidate has withdrawn after offer acceptance or during onboarding. The accepted offer and historical records will remain.</Text>
+            <TextInput value={withdrawReason} onChangeText={setWithdrawReason} multiline maxLength={5000} accessibilityLabel="Candidate withdrawal reason" placeholder="Enter the candidate's withdrawal reason (required)" placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border }]} />
+            <Pressable accessibilityRole="button" disabled={saving || !withdrawReason.trim()} onPress={() => setConfirmWithdrawal(true)} style={[styles.rejectButton, { borderColor: '#B42318' }, (saving || !withdrawReason.trim()) && styles.disabled]}>
+              <Text style={styles.rejectText}>Record withdrawal</Text>
+            </Pressable>
+          </View> : null}
+          {application.status_history?.length ? <View style={[styles.card, card]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Application history</Text>
+            {application.status_history.map((event) => <View key={event.id} style={[styles.commentBox, { borderColor: theme.border }]}>
+              <Text style={[styles.text, { color: theme.text }]}>{event.from_status ? `${label(event.from_status)} → ` : ''}{label(event.to_status)}</Text>
+              <Text style={[styles.text, { color: theme.textSecondary }]}>{event.actor_name ?? (event.actor_type === 'CANDIDATE' ? 'Candidate' : 'Recruiter')} · {displayDate(event.changed_at)}</Text>
+              {event.reason ? <Text style={[styles.text, { color: theme.textSecondary }]}>Reason: {event.reason}</Text> : null}
+            </View>)}
+          </View> : null}
           {error && application ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
           {notice && !canManage ? <Text style={{ color: theme.primary }}>{notice}</Text> : null}
         </> : null}
       </View>
+      <Modal visible={confirmWithdrawal} transparent animationType="fade" onRequestClose={() => setConfirmWithdrawal(false)}>
+        <View style={styles.modalBackdrop}><View style={[styles.modalCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Confirm application withdrawal</Text>
+          <Text style={[styles.text, { color: theme.textSecondary }]}>This will end recruitment and cancel active onboarding tasks. Offers, interviews, documents and completed tasks will remain in the record.</Text>
+          <Text style={[styles.text, { color: theme.text }]}>{withdrawReason.trim()}</Text>
+          <View style={styles.actions}>
+            <Pressable accessibilityRole="button" disabled={saving} onPress={() => setConfirmWithdrawal(false)} style={[styles.rejectButton, { borderColor: theme.border }]}><Text style={{ color: theme.text }}>Keep application</Text></Pressable>
+            <Pressable accessibilityRole="button" disabled={saving} onPress={() => void performWithdrawal()} style={[styles.button, { backgroundColor: '#B42318' }]}>{saving ? <ActivityIndicator color="#FFFFFF" /> : <Text style={[styles.buttonText, { color: '#FFFFFF' }]}>Confirm withdrawal</Text>}</Pressable>
+          </View>
+        </View></View>
+      </Modal>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   content: { flexGrow: 1, padding: 22 }, page: { width: '100%', maxWidth: 920, alignSelf: 'center', gap: 15 }, back: { fontSize: 14, fontWeight: '700', paddingVertical: 5 }, state: { minHeight: 220, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  card: { borderWidth: 1, borderRadius: 17, padding: 20, gap: 11 }, eyebrow: { fontSize: 10, letterSpacing: 1, fontWeight: '800' }, title: { fontSize: 24, fontWeight: '800' }, sectionTitle: { fontSize: 17, fontWeight: '700' }, jobTitle: { fontSize: 18, fontWeight: '700' }, text: { fontSize: 13, lineHeight: 20 }, value: { fontSize: 14, fontWeight: '700' }, description: { fontSize: 14, lineHeight: 22, marginTop: 5 }, link: { fontSize: 14, fontWeight: '700' }, resumeActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 }, row: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 }, commentBox: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 10, gap: 5 }, stageList: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, stageButton: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 11, paddingVertical: 8 }, input: { minHeight: 90, borderWidth: 1, borderRadius: 10, padding: 11, textAlignVertical: 'top' }, actions: { flexDirection: 'row', gap: 9 }, button: { minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 10, paddingHorizontal: 16 }, buttonText: { fontSize: 14, fontWeight: '700' }, rejectButton: { minHeight: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 10, paddingHorizontal: 16 }, rejectText: { color: '#B42318', fontWeight: '700' }, disabled: { opacity: 0.5 }, error: { color: '#B42318', fontSize: 13 }, notice: { fontSize: 13, fontWeight: '600' },
+  card: { borderWidth: 1, borderRadius: 17, padding: 20, gap: 11 }, eyebrow: { fontSize: 10, letterSpacing: 1, fontWeight: '800' }, title: { fontSize: 24, fontWeight: '800' }, sectionTitle: { fontSize: 17, fontWeight: '700' }, jobTitle: { fontSize: 18, fontWeight: '700' }, text: { fontSize: 13, lineHeight: 20 }, value: { fontSize: 14, fontWeight: '700' }, description: { fontSize: 14, lineHeight: 22, marginTop: 5 }, link: { fontSize: 14, fontWeight: '700' }, resumeActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 }, row: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 }, commentBox: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 10, gap: 5 }, stageList: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, stageButton: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 11, paddingVertical: 8 }, input: { minHeight: 90, borderWidth: 1, borderRadius: 10, padding: 11, textAlignVertical: 'top' }, actions: { flexDirection: 'row', gap: 9, flexWrap: 'wrap' }, button: { minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 10, paddingHorizontal: 16 }, buttonText: { fontSize: 14, fontWeight: '700' }, rejectButton: { minHeight: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 10, paddingHorizontal: 16 }, rejectText: { color: '#B42318', fontWeight: '700' }, disabled: { opacity: 0.5 }, error: { color: '#B42318', fontSize: 13 }, notice: { fontSize: 13, fontWeight: '600' }, modalBackdrop: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20, backgroundColor: 'rgba(16,24,40,0.55)' }, modalCard: { width: '100%', maxWidth: 480, borderWidth: 1, borderRadius: 18, padding: 22, gap: 14 },
 });

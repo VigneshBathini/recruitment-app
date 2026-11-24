@@ -18,6 +18,7 @@ export default function OffersScreen() {
   const router = useRouter(); const theme = useTheme(); const { width } = useWindowDimensions();
   const [offers, setOffers] = useState<ManagementOffer[]>([]); const [selectedCandidates, setSelectedCandidates] = useState<ManagedApplication[]>([]);
   const [permissions, setPermissions] = useState<string[]>([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [applicationError, setApplicationError] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
   const load = useCallback(async () => {
     setLoading(true); setError(''); setApplicationError('');
     try {
@@ -35,6 +36,7 @@ export default function OffersScreen() {
   useFocusEffect(useCallback(() => { void load(); }, [load]));
   const wide = width >= 760;
   const visibleOffers = permissions.includes('offer.approve') && !permissions.includes('offer.manage') ? offers.filter((offer) => offer.status === 'PENDING_APPROVAL') : offers;
+  const filteredOffers = statusFilter === 'ALL' ? visibleOffers : visibleOffers.filter((offer) => offer.status === statusFilter);
   return <ThemedView style={styles.screen}><ScrollView contentContainerStyle={styles.content}><View style={styles.page}>
     <JobPageHeader title="Offer management" subtitle="Prepare offers for selected candidates, route them for approval, and track candidate responses." onBack={() => router.back()} />
     <JobState loading={loading} error={!loading && error ? error : undefined} onRetry={() => void load()} />
@@ -50,7 +52,8 @@ export default function OffersScreen() {
         </View>)}</View>
       </View> : null}
       <View style={styles.section}><ThemedText style={styles.sectionTitle}>{permissions.includes('offer.approve') && !permissions.includes('offer.manage') ? 'Pending approvals' : 'Offers'}</ThemedText>
-        {visibleOffers.length === 0 ? <JobState empty={permissions.includes('offer.approve') && !permissions.includes('offer.manage') ? 'There are no offers awaiting your approval.' : 'No offers yet.'} /> : <View style={styles.grid}>{visibleOffers.map((offer) => {
+        <View style={styles.filters}>{['ALL', 'DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'ISSUED', 'EXPIRED', 'ACCEPTED', 'DECLINED'].map((status) => <Pressable key={status} accessibilityRole="button" accessibilityState={{ selected: statusFilter === status }} onPress={() => setStatusFilter(status)} style={[styles.filter, { borderColor: statusFilter === status ? theme.primary : theme.border, backgroundColor: statusFilter === status ? theme.primaryMuted : theme.backgroundElement }]}><ThemedText style={{ color: statusFilter === status ? theme.primary : theme.textSecondary, fontWeight: '700', fontSize: 12 }}>{status === 'ALL' ? 'All statuses' : status.replace(/_/g, ' ')}</ThemedText></Pressable>)}</View>
+        {filteredOffers.length === 0 ? <JobState empty={visibleOffers.length === 0 ? (permissions.includes('offer.approve') && !permissions.includes('offer.manage') ? 'There are no offers awaiting your approval.' : 'No offers yet.') : `No ${statusFilter.toLowerCase().replace(/_/g, ' ')} offers.`} /> : <View style={styles.grid}>{filteredOffers.map((offer) => {
           const candidate = offer.candidate ? `${offer.candidate.first_name} ${offer.candidate.last_name ?? ''}`.trim() : `${offer.candidate_first_name ?? ''} ${offer.candidate_last_name ?? ''}`.trim();
           return <Pressable accessibilityRole="button" key={offer.id} onPress={() => router.push({ pathname: '/offer-details', params: { offerId: String(offer.id) } } as never)} style={({ pressed }) => [jobCardStyle(theme.backgroundElement, theme.border), styles.offerCard, { width: wide ? '48.8%' : '100%', opacity: pressed ? 0.75 : 1 }]}>
             <View style={styles.offerTop}><View style={{ flex: 1, gap: 5 }}><ThemedText style={styles.cardTitle}>{candidate || `Application #${offer.application_id}`}</ThemedText><ThemedText style={{ color: theme.textSecondary }}>{offer.job?.title ?? offer.job_title} · #{offer.id}</ThemedText></View><JobStatusBadge status={offer.status} /></View>
@@ -65,4 +68,4 @@ export default function OffersScreen() {
   </View></ScrollView></ThemedView>;
 }
 
-const styles = StyleSheet.create({ screen: { flex: 1 }, content: { flexGrow: 1, padding: Spacing.three, paddingBottom: Spacing.five }, page: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', gap: Spacing.four }, summary: { padding: Spacing.three, borderRadius: 16, flexDirection: 'row', alignItems: 'center', gap: 16 }, summaryTitle: { fontSize: 16, fontWeight: '800' }, section: { gap: 13 }, sectionTitle: { fontSize: 19, fontWeight: '800' }, grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 }, person: { flexDirection: 'row', alignItems: 'center', gap: 11 }, avatar: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }, cardTitle: { fontSize: 15, fontWeight: '800' }, offerCard: { gap: 11 }, offerTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 } });
+const styles = StyleSheet.create({ screen: { flex: 1 }, content: { flexGrow: 1, padding: Spacing.three, paddingBottom: Spacing.five }, page: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', gap: Spacing.four }, summary: { padding: Spacing.three, borderRadius: 16, flexDirection: 'row', alignItems: 'center', gap: 16 }, summaryTitle: { fontSize: 16, fontWeight: '800' }, section: { gap: 13 }, sectionTitle: { fontSize: 19, fontWeight: '800' }, filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, filter: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 11, paddingVertical: 8 }, grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 }, person: { flexDirection: 'row', alignItems: 'center', gap: 11 }, avatar: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }, cardTitle: { fontSize: 15, fontWeight: '800' }, offerCard: { gap: 11 }, offerTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 } });

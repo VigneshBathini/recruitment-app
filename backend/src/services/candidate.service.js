@@ -58,7 +58,7 @@ export async function registerCandidate(data) {
     });
   } catch (error) {
     if (error.code === "ER_DUP_ENTRY") {
-      throw createError("A candidate with this email already exists in this organization", 409);
+      throw createError("Unable to complete registration with these details", 400);
     }
     throw error;
   }
@@ -73,7 +73,7 @@ export async function loginCandidate(data) {
     throw createError("Invalid organization, email, or password", 401);
   }
   if (Number(candidate.organization_is_active) !== 1) {
-    throw createError("This organization is inactive", 403);
+    throw createError("Invalid organization, email, or password", 401);
   }
   return { token: signCandidateToken(candidate), candidate: candidateResponse(candidate) };
 }

@@ -20,6 +20,11 @@ function dateOnly(value) {
   return String(value).slice(0, 10);
 }
 
+function effectiveStatus(offer) {
+  const { effective_status: status, ...data } = offer;
+  return { ...data, status: status ?? offer.status };
+}
+
 async function requirePermission(user, permission) {
   const permissions = await getPermissionsByRoleId(user.organization_id, user.role_id);
   if (!permissions.some((item) => item.name === permission)) throw serviceError(`Missing required permission: ${permission}`, 403);
@@ -28,15 +33,16 @@ async function requirePermission(user, permission) {
 function parseListQuery(query) {
   const search = query.search === undefined ? undefined : String(query.search).trim().slice(0, 150);
   const status = query.status === undefined ? undefined : String(query.status).trim().toUpperCase();
-  if (status && !["DRAFT", "PENDING_APPROVAL", "APPROVED", "REJECTED", "ISSUED"].includes(status)) {
+  if (status && !["DRAFT", "PENDING_APPROVAL", "APPROVED", "REJECTED", "ISSUED", "ACCEPTED", "DECLINED", "EXPIRED"].includes(status)) {
     throw serviceError("Unsupported offer status filter", 400);
   }
   return { search: search || undefined, status };
 }
 
 async function offerWithHistory(id, organizationId) {
-  const offer = await getOfferById(id, organizationId);
-  if (!offer) return null;
+  const storedOffer = await getOfferById(id, organizationId);
+  if (!storedOffer) return null;
+  const offer = effectiveStatus(storedOffer);
   offer.approval_history = await getOfferApprovalHistory(id, organizationId);
   offer.application = {
     id: Number(offer.application_id),
@@ -55,7 +61,8 @@ async function offerWithHistory(id, organizationId) {
 }
 
 export async function listOffersService(query, user) {
-  return listOffers({ organizationId: user.organization_id, ...parseListQuery(query) });
+  const offers = await listOffers({ organizationId: user.organization_id, ...parseListQuery(query) });
+  return offers.map(effectiveStatus);
 }
 
 export async function getOfferService(idValue, user) {

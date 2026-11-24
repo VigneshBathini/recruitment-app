@@ -55,13 +55,23 @@ export async function replaceRolePermissions(
 
     // Validate role
     const [roles] = await connection.execute(
-      "SELECT id FROM roles WHERE id = ?",
-      [roleId]
+      `SELECT r.id, r.name
+       FROM organization_roles available
+       INNER JOIN roles r ON r.id = available.role_id
+       WHERE available.organization_id = ? AND r.id = ?
+       LIMIT 1`,
+      [organizationId, roleId]
     );
 
     if (roles.length === 0) {
-      const error = new Error("Role not found");
+      const error = new Error("Role is not configured for this organization");
       error.statusCode = 404;
+      throw error;
+    }
+
+    if (roles[0].name === "Organization Admin") {
+      const error = new Error("Organization Admin role permissions cannot be modified");
+      error.statusCode = 403;
       throw error;
     }
 
@@ -70,14 +80,16 @@ export async function replaceRolePermissions(
       const placeholders = permissionIds.map(() => "?").join(", ");
 
       const [permissions] = await connection.execute(
-        `SELECT id FROM permissions
-         WHERE id IN (${placeholders})`,
-        permissionIds
+        `SELECT permission_id
+         FROM organization_permissions
+         WHERE organization_id = ?
+           AND permission_id IN (${placeholders})`,
+        [organizationId, ...permissionIds]
       );
 
       if (permissions.length !== permissionIds.length) {
         const error = new Error(
-          "One or more permission IDs are invalid"
+          "One or more permissions are invalid or unavailable to this organization"
         );
         error.statusCode = 400;
         throw error;

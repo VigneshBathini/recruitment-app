@@ -25,9 +25,19 @@ export type ManagedApplication = {
   decision_comments: string | null;
   applied_at: string;
   updated_at: string;
+  status_history?: Array<{
+    id: number;
+    from_status: string | null;
+    to_status: string;
+    actor_type: 'CANDIDATE' | 'MANAGEMENT_USER';
+    actor_id: number | null;
+    actor_name: string | null;
+    reason: string | null;
+    changed_at: string;
+  }>;
 };
 
-export type ApplicationCounts = { total: number; new: number; screening: number; shortlisted: number; hired: number };
+export type ApplicationCounts = { total: number; new: number; screening: number; shortlisted: number; withdrawn: number; hired: number };
 export type ApplicationFilters = { search?: string; status?: string; stage?: string; page?: number; page_size?: number };
 export type ApplicationPage = {
   items: ManagedApplication[];
@@ -118,5 +128,10 @@ export async function shortlistApplication(id: number, comments: string) {
 
 export async function rejectApplication(id: number, comments: string) {
   const response = await api.post<ApiResponse<ManagedApplication>>(`/applications/${id}/reject`, { comments });
+  return response.data.data;
+}
+
+export async function withdrawManagedApplication(id: number, reason: string) {
+  const response = await api.post<ApiResponse<ManagedApplication>>(`/applications/${id}/withdraw`, { reason });
   return response.data.data;
 }

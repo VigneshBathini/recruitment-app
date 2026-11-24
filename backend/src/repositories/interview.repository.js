@@ -45,6 +45,22 @@ export async function listCandidateInterviews(candidateId, organizationId) {
   }));
 }
 
+export async function listInterviewHistory(interviewId, organizationId) {
+  const [rows] = await pool.execute(
+    `SELECT h.id, h.action, h.field_name, h.previous_value, h.new_value, h.actor_type,
+       h.created_at, CONCAT_WS(' ', u.first_name, u.last_name) AS actor_name
+     FROM workflow_history h
+     LEFT JOIN users u ON h.actor_type = 'MANAGEMENT_USER' AND u.id = h.actor_id
+       AND u.organization_id = h.organization_id
+     JOIN interviews i ON i.id = h.entity_id AND h.entity_type = 'INTERVIEW'
+     JOIN applications a ON a.id = i.application_id AND a.organization_id = h.organization_id
+     WHERE h.organization_id = ? AND h.entity_type = 'INTERVIEW' AND h.entity_id = ?
+     ORDER BY h.created_at ASC, h.id ASC`,
+    [organizationId, interviewId],
+  );
+  return rows;
+}
+
 const detailSelect = `SELECT i.id, i.application_id, i.interview_type, i.title,
  i.scheduled_at, i.duration_minutes, i.meeting_url, i.location, i.status, i.created_by,
  a.organization_id, a.status AS application_status,
@@ -147,6 +163,12 @@ export async function createInterview(data) {
         [result.insertId, userId],
       );
     }
+    await connection.execute(
+      `INSERT INTO workflow_history
+       (organization_id, entity_type, entity_id, action, field_name, previous_value, new_value, actor_type, actor_id)
+       VALUES (?, 'INTERVIEW', ?, 'CREATED', 'scheduled_at', NULL, ?, 'MANAGEMENT_USER', ?)`,
+      [data.organization_id, result.insertId, String(data.scheduled_at), data.created_by],
+    );
     await connection.commit();
     return result.insertId;
   } catch (error) {
@@ -157,7 +179,7 @@ export async function createInterview(data) {
   }
 }
 
-export async function changeInterview(id, orgId, patch) {
+export async function changeInterview(id, orgId, patch, actorId) {
   const columns = {
     interview_type: "interview_type",
     title: "title",
@@ -176,14 +198,42 @@ export async function changeInterview(id, orgId, patch) {
     }
   }
   if (!fields.length) return 0;
-  const [result] = await pool.execute(
-    `UPDATE interviews i
-     JOIN applications a ON a.id = i.application_id
-     SET ${fields.join(", ")}
-     WHERE i.id = ? AND a.organization_id = ?`,
-    [...values, id, orgId],
-  );
-  return result.affectedRows;
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [rows] = await connection.execute(
+      `SELECT i.scheduled_at, i.status FROM interviews i
+       JOIN applications a ON a.id = i.application_id
+       WHERE i.id = ? AND a.organization_id = ? FOR UPDATE`, [id, orgId],
+    );
+    if (!rows[0]) { await connection.rollback(); return 0; }
+    const oldSchedule = rows[0].scheduled_at instanceof Date ? rows[0].scheduled_at.toISOString() : String(rows[0].scheduled_at);
+    const oldTime = new Date(oldSchedule).getTime();
+    const newTime = patch.scheduled_at === undefined ? oldTime : new Date(patch.scheduled_at).getTime();
+    if (patch.scheduled_at !== undefined && newTime !== oldTime) {
+      await connection.execute(
+        `INSERT INTO workflow_history
+         (organization_id, entity_type, entity_id, action, field_name, previous_value, new_value, actor_type, actor_id)
+         VALUES (?, 'INTERVIEW', ?, 'RESCHEDULED', 'scheduled_at', ?, ?, 'MANAGEMENT_USER', ?)`,
+        [orgId, id, oldSchedule, String(patch.scheduled_at), actorId],
+      );
+    }
+    if (patch.status === 'CANCELLED' && rows[0].status !== 'CANCELLED') {
+      await connection.execute(
+        `INSERT INTO workflow_history
+         (organization_id, entity_type, entity_id, action, field_name, previous_value, new_value, actor_type, actor_id)
+         VALUES (?, 'INTERVIEW', ?, 'CANCELLED', 'status', ?, 'CANCELLED', 'MANAGEMENT_USER', ?)`,
+        [orgId, id, rows[0].status, actorId],
+      );
+    }
+    const [result] = await connection.execute(
+      `UPDATE interviews i JOIN applications a ON a.id = i.application_id
+       SET ${fields.join(", ")} WHERE i.id = ? AND a.organization_id = ?`, [...values, id, orgId],
+    );
+    await connection.commit();
+    return result.affectedRows;
+  } catch (error) { await connection.rollback(); throw error; }
+  finally { connection.release(); }
 }
 
 export async function completeInterview(id, orgId, userId, interviewerOnly) {

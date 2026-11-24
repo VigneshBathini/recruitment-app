@@ -14,6 +14,7 @@ import {
   listMyOffersService,
   respondToMyOfferService,
 } from "../services/candidate-offer.service.js";
+import { withdrawCandidateApplicationService } from "../services/application.service.js";
 import {
   candidateApplicationSchema,
   candidateLoginSchema,
@@ -42,7 +43,12 @@ export async function registerCandidateController(req, res, next) {
   try {
     const result = await registerCandidate(data);
     return res.status(201).json({ success: true, message: "Candidate registered successfully", data: result });
-  } catch (error) { return sendError(error, res, next); }
+  } catch (error) {
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(400).json({ success: false, message: "Unable to complete registration with these details" });
+    }
+    return sendError(error, res, next);
+  }
 }
 
 export async function loginCandidateController(req, res, next) {
@@ -102,6 +108,16 @@ export async function getCandidateApplicationsController(req, res, next) {
   try {
     const applications = await getCandidateApplicationsService(req.candidate.id, req.candidate.organization_id);
     return res.status(200).json({ success: true, data: applications });
+  } catch (error) { return sendError(error, res, next); }
+}
+
+export async function withdrawCandidateApplicationController(req, res, next) {
+  if (!req.body || typeof req.body !== "object" || Array.isArray(req.body) || typeof req.body.reason !== "string") {
+    return res.status(400).json({ success: false, message: "A withdrawal reason is required" });
+  }
+  try {
+    const application = await withdrawCandidateApplicationService(req.params.id, req.body, req.candidate);
+    return res.status(200).json({ success: true, message: "Application withdrawn", data: application });
   } catch (error) { return sendError(error, res, next); }
 }
 

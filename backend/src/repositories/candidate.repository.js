@@ -141,9 +141,9 @@ export async function createCandidateApplication(candidateId, organizationId, jo
     );
     await connection.execute(
       `INSERT INTO application_status_history
-       (application_id, from_status, to_status, changed_by)
-       VALUES (?, NULL, 'APPLIED', NULL)`,
-      [result.insertId]
+       (application_id, from_status, to_status, changed_by, actor_type, actor_id)
+       VALUES (?, NULL, 'APPLIED', NULL, 'CANDIDATE', ?)`,
+      [result.insertId, candidateId]
     );
     await connection.commit();
     return { id: result.insertId };
@@ -158,7 +158,9 @@ export async function createCandidateApplication(candidateId, organizationId, jo
 export async function getCandidateApplications(candidateId, organizationId) {
   const [rows] = await pool.execute(
     `SELECT a.id, a.job_id, j.title AS job_title, a.status, a.current_stage,
-       a.applied_at, a.updated_at, a.decision
+       a.applied_at, a.updated_at, a.decision,
+       EXISTS (SELECT 1 FROM offers o WHERE o.application_id = a.id
+         AND o.organization_id = a.organization_id AND o.status = 'ACCEPTED') AS has_accepted_offer
      FROM applications a
      INNER JOIN jobs j
        ON j.id = a.job_id AND j.organization_id = a.organization_id
