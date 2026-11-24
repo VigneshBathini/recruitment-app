@@ -23,58 +23,52 @@ import interviewRoutes from "./routes/interview.routes.js";
 import offerRoutes from "./routes/offer.routes.js";
 import onboardingRoutes from "./routes/onboarding.routes.js";
 
-const app = express();
+export function createApp({ database = pool } = {}) {
+  const app = express();
 
-app.use(helmet());
-app.use(cors());
-app.use(express.json());
+  app.use(helmet());
+  app.use(cors());
+  app.use(express.json());
 
-app.get("/api/health", (_req, res) => {
-  res.json({
-    success: true,
-    message: "Recruitment Workflow API is running",
-  });
-});
-
-app.get("/api/health/db", async (_req, res) => {
-  try {
-    const [rows] = await pool.query("SELECT 1 AS result");
-
+  app.get("/api/health", (_req, res) => {
     res.json({
       success: true,
-      message: "Database connection successful",
-      data: rows,
+      message: "Recruitment Workflow API is running",
     });
-  } catch (error) {
-    console.error("Database connection failed:", error);
+  });
 
-    res.status(500).json({
-      success: false,
-      message: "Database connection failed",
-    });
-  }
-});
+  app.get("/api/health/db", async (_req, res) => {
+    try {
+      await database.query("SELECT 1 AS result");
+      res.json({ success: true });
+    } catch {
+      res.status(500).json({
+        success: false,
+        message: "Service temporarily unavailable",
+      });
+    }
+  });
 
-app.use("/api/organizations", organizationRoutes);
-app.use("/api/departments", departmentRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/roles", roleRoutes);
-app.use("/api/auth", authRoutes);
-app.use("/api/permissions", permissionRoutes);
-app.use("/api/platform-admin", platformAdminRoutes);
-app.use("/api/requirements", requirementRoutes);
-app.use("/api/approvals", approvalRoutes);
-app.use("/api/public", publicJobRoutes);
-app.use("/api/candidate-auth", candidateAuthRoutes);
-app.use("/api/candidates", candidateRoutes);
-app.use("/api/applications", applicationRoutes);
-app.use("/api/interviews", interviewRoutes);
-app.use("/api/offers", offerRoutes);
-app.use("/api/onboarding", onboardingRoutes);
-app.use("/api/jobs", jobDescriptionRoutes);
+  app.use("/api/organizations", organizationRoutes);
+  app.use("/api/departments", departmentRoutes);
+  app.use("/api/users", userRoutes);
+  app.use("/api/roles", roleRoutes);
+  app.use("/api/auth", authRoutes);
+  app.use("/api/permissions", permissionRoutes);
+  app.use("/api/platform-admin", platformAdminRoutes);
+  app.use("/api/requirements", requirementRoutes);
+  app.use("/api/approvals", approvalRoutes);
+  app.use("/api/public", publicJobRoutes);
+  app.use("/api/candidate-auth", candidateAuthRoutes);
+  app.use("/api/candidates", candidateRoutes);
+  app.use("/api/applications", applicationRoutes);
+  app.use("/api/interviews", interviewRoutes);
+  app.use("/api/offers", offerRoutes);
+  app.use("/api/onboarding", onboardingRoutes);
+  app.use("/api/jobs", jobDescriptionRoutes);
 
-const PORT = process.env.PORT || 5000;
+  return app;
+}
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+const app = createApp();
+export default app;
