@@ -96,6 +96,7 @@ export default function RootLayout() {
 
         const platformOnlyRoutes = ['/platform-admin', '/organizations', '/create-organization'];
         const organizationAdminRoutes = ['/', '/departments', '/users', '/create-user', '/edit-user', '/role-permissions'];
+        const applicationRoutes = ['/applications', '/application-details'];
         const roleDashboardRoutes = [
           '/recruiter-dashboard', '/hiring-manager-dashboard', '/interviewer-dashboard',
         ];
@@ -128,10 +129,21 @@ export default function RootLayout() {
         }
 
         const organization = await getCurrentOrganizationUser();
+        const landingRoute = getLandingRoute(organization.role_name, accountType);
+        const redirectToRoleLanding = () => {
+          if (pathname !== landingRoute) router.replace(landingRoute as never);
+        };
 
 if (organizationAdminRoutes.includes(pathname)) {
   if (organization.role_name !== 'Organization Admin') {
-    router.replace('/explore');
+    redirectToRoleLanding();
+  }
+  return;
+}
+
+if (applicationRoutes.includes(pathname)) {
+  if (!organization.permissions?.includes('application.view')) {
+    redirectToRoleLanding();
   }
   return;
 }
@@ -146,40 +158,40 @@ if (requirementRoutes.includes(pathname)) {
       permissions.includes('requirement.manage');
 
     if (!canView) {
-      router.replace('/explore');
+      redirectToRoleLanding();
     }
   } else if (!permissions.includes('requirement.manage')) {
-    router.replace('/requirements');
+    redirectToRoleLanding();
   }
 }
 
 if (interviewRoutes.includes(pathname) || pathname === '/interviewer-dashboard') {
   const permissions = organization.permissions ?? [];
   const canInterview = permissions.includes('interview.view') || permissions.includes('interview.manage') || permissions.includes('interview.feedback');
-  if (!canInterview) router.replace('/explore');
+  if (!canInterview) redirectToRoleLanding();
 }
 
 if (applicationReviewRoutes.includes(pathname)) {
   const permissions = organization.permissions ?? [];
-  if (!permissions.includes('application.review') || organization.role_name !== 'Hiring Manager') router.replace('/explore');
+  if (!permissions.includes('application.review') || organization.role_name !== 'Hiring Manager') redirectToRoleLanding();
 }
 
 if (onboardingRoutes.includes(pathname)) {
   const permissions = organization.permissions ?? [];
   const canOnboard = permissions.includes('onboarding.view') || permissions.includes('onboarding.manage') || permissions.includes('onboarding.document.review') || permissions.includes('onboarding.complete');
-  if (!canOnboard) router.replace('/explore');
+  if (!canOnboard) redirectToRoleLanding();
 }
 
 if (jobDescriptionRoutes.includes(pathname)) {
   const permissions = organization.permissions ?? [];
   const canAccessJobs = ['job.view', 'job.manage', 'job.approve'].some((permission) => permissions.includes(permission));
-  if (!canAccessJobs) router.replace('/explore');
+  if (!canAccessJobs) redirectToRoleLanding();
 }
 
 if (offerRoutes.includes(pathname)) {
   const permissions = organization.permissions ?? [];
   const canAccessOffers = ['offer.view', 'offer.manage', 'offer.approve', 'offer.issue'].some((permission) => permissions.includes(permission));
-  if (!canAccessOffers) router.replace('/explore');
+  if (!canAccessOffers) redirectToRoleLanding();
 }
       } catch {
         void logoutUser();

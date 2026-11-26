@@ -40,6 +40,7 @@ export default function DepartmentsScreen() {
 
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
+  const [accountTypeLoaded, setAccountTypeLoaded] = useState(false);
   const [selectedOrganizationId, setSelectedOrganizationId] =
     useState<number | null>(null);
 
@@ -67,8 +68,9 @@ export default function DepartmentsScreen() {
 
     try {
       const accountType = await getAccountType();
-      const data = await getManagedOrganizations();
       setIsPlatformAdmin(accountType === 'platform_admin');
+      setAccountTypeLoaded(true);
+      const data = await getManagedOrganizations();
 
       setOrganizations(data);
 
@@ -222,7 +224,9 @@ export default function DepartmentsScreen() {
         <View style={styles.heading}>
           <ThemedText type="title">Department Management</ThemedText>
           <ThemedText themeColor="textSecondary">
-            Manage departments within each organization.
+            {isPlatformAdmin
+              ? 'Choose an organization to view its departments.'
+              : 'Manage departments within each organization.'}
           </ThemedText>
         </View>
 
@@ -292,7 +296,7 @@ export default function DepartmentsScreen() {
           )}
         </ThemedView>
 
-        <ThemedView
+        {accountTypeLoaded && !isPlatformAdmin && <ThemedView
           style={[
             styles.card,
             { borderColor: theme.border },
@@ -389,7 +393,15 @@ export default function DepartmentsScreen() {
               <ThemedText>Cancel Editing</ThemedText>
             </Pressable>
           )}
-        </ThemedView>
+        </ThemedView>}
+
+        {isPlatformAdmin && (
+          <ThemedView style={[styles.readOnlyNotice, { backgroundColor: theme.primaryMuted, borderColor: theme.border }]}>
+            <ThemedText style={{ color: theme.primary, fontWeight: '700' }}>
+              Platform Admin has read-only access to departments.
+            </ThemedText>
+          </ThemedView>
+        )}
 
         <View style={styles.listHeading}>
           <ThemedText type="subtitle">Departments</ThemedText>
@@ -438,7 +450,7 @@ export default function DepartmentsScreen() {
                   </ThemedText>
                 </View>
 
-                <Pressable
+                {!isPlatformAdmin && <Pressable
                   accessibilityRole="button"
                   onPress={() => startEditing(department)}
                   style={[
@@ -450,7 +462,7 @@ export default function DepartmentsScreen() {
                   ]}
                 >
                   <ThemedText>Edit</ThemedText>
-                </Pressable>
+                </Pressable>}
               </ThemedView>
             ))}
           </View>
@@ -487,6 +499,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: Spacing.four,
     gap: Spacing.three,
+  },
+  readOnlyNotice: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: Spacing.three,
   },
   field: {
     gap: Spacing.two,

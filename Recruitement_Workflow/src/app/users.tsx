@@ -193,22 +193,53 @@ export default function UsersScreen() {
       ]}
     >
       {/* Page heading */}
-      <Text style={[styles.title, { color: theme.text }]}>Users</Text>
+      <Text style={[styles.title, { color: theme.text }]}>{isPlatformAdmin ? 'User Management' : 'Users'}</Text>
 
       <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-        Manage organization members, roles, and departments.
+        {isPlatformAdmin
+          ? 'Choose an organization to manage its users, roles, and access.'
+          : 'Manage organization members, roles, and departments.'}
       </Text>
 
       {isPlatformAdmin && (
-        <View style={{ gap: 8 }}>
-          <Pressable accessibilityRole="button" onPress={() => setShowOrganizations((value) => !value)} style={[styles.statusButton, { borderColor: theme.border }]}>
-            <Text style={{ color: theme.text }}>{organizations.find((org) => org.id === selectedOrganizationId)?.name ?? 'Select organization'}</Text>
+        <View style={[styles.organizationPicker, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+          <Text style={[styles.organizationLabel, { color: theme.textSecondary }]}>ORGANIZATION</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: showOrganizations }}
+            onPress={() => setShowOrganizations((value) => !value)}
+            style={({ pressed }) => [styles.organizationTrigger, { backgroundColor: theme.background, borderColor: showOrganizations ? theme.primary : theme.border }, pressed && styles.buttonPressed]}
+          >
+            <View style={[styles.organizationMark, { backgroundColor: theme.primaryMuted }]}>
+              <Text style={[styles.organizationMarkText, { color: theme.primary }]}>O</Text>
+            </View>
+            <View style={styles.organizationCopy}>
+              <Text numberOfLines={1} style={[styles.organizationName, { color: theme.text }]}>
+                {organizations.find((org) => org.id === selectedOrganizationId)?.name ?? 'Select organization'}
+              </Text>
+              <Text style={[styles.organizationHint, { color: theme.textSecondary }]}>Manage users and access</Text>
+            </View>
+            <Text style={[styles.organizationChevron, { color: theme.primary }]}>{showOrganizations ? '⌃' : '⌄'}</Text>
           </Pressable>
-          {showOrganizations && organizations.map((organization) => (
-            <Pressable key={organization.id} onPress={() => { setSelectedOrganizationId(organization.id); setShowOrganizations(false); }} style={[styles.statusButton, { borderColor: theme.border }]}>
-              <Text style={{ color: theme.text }}>{organization.name}</Text>
-            </Pressable>
-          ))}
+          {showOrganizations && (
+            <View style={[styles.organizationMenu, { borderColor: theme.border }]}>
+              {organizations.map((organization) => {
+                const selected = organization.id === selectedOrganizationId;
+                return (
+                  <Pressable
+                    key={organization.id}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    onPress={() => { setSelectedOrganizationId(organization.id); setShowOrganizations(false); }}
+                    style={({ pressed }) => [styles.organizationOption, { backgroundColor: selected ? theme.primaryMuted : 'transparent' }, pressed && styles.buttonPressed]}
+                  >
+                    <Text numberOfLines={1} style={[styles.organizationOptionText, { color: selected ? theme.primary : theme.text }]}>{organization.name}</Text>
+                    {selected && <Text style={[styles.organizationCheck, { color: theme.primary }]}>✓</Text>}
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
         </View>
       )}
 
@@ -404,6 +435,44 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 14,
   },
+  organizationPicker: {
+    padding: 14,
+    borderWidth: 1,
+    borderRadius: 16,
+    marginBottom: 16,
+    gap: 9,
+  },
+  organizationLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.1,
+  },
+  organizationTrigger: {
+    minHeight: 62,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
+    gap: 11,
+  },
+  organizationMark: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  organizationMarkText: { fontSize: 16, fontWeight: '800' },
+  organizationCopy: { flex: 1, minWidth: 0, gap: 3 },
+  organizationName: { fontSize: 14, fontWeight: '700' },
+  organizationHint: { fontSize: 11 },
+  organizationChevron: { fontSize: 20, fontWeight: '700', paddingHorizontal: 5 },
+  organizationMenu: { borderWidth: 1, borderRadius: 12, overflow: 'hidden' },
+  organizationOption: { minHeight: 46, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  organizationOptionText: { flex: 1, fontSize: 13, fontWeight: '600' },
+  organizationCheck: { fontSize: 16, fontWeight: '800' },
   list: {
     flex: 1,
   },

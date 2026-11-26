@@ -177,7 +177,7 @@ export default function PlatformAdminScreen() {
             />
             <ToolCard
               title="Department Management"
-              description="Choose an organization to review or update its departments."
+              description="Choose an organization to view its departments."
               icon="D"
               onPress={() => router.push('/departments')}
               wide={isWide}
@@ -219,18 +219,28 @@ export default function PlatformAdminScreen() {
     return (
       <Pressable
         accessibilityRole="button"
+        accessibilityHint={`Opens ${title}`}
         onPress={onPress}
         style={({ pressed }) => [styles.toolCard, { width: wide ? '48.5%' : '100%', backgroundColor: theme.backgroundElement, borderColor: theme.border }, pressed && styles.pressed]}
       >
         <View style={[styles.toolIcon, { backgroundColor: theme.primaryMuted }]}><ThemedText style={[styles.toolIconText, { color: theme.primary }]}>{icon}</ThemedText></View>
         <View style={styles.toolCopy}>
+          <ThemedText style={[styles.toolCategory, { color: theme.primary }]}>{getToolCategory(title)}</ThemedText>
           <ThemedText style={styles.toolTitle}>{title}</ThemedText>
           <ThemedText style={[styles.toolDescription, { color: theme.textSecondary }]}>{description}</ThemedText>
         </View>
-        <ThemedText style={[styles.toolArrow, { color: theme.textSecondary }]}>↗</ThemedText>
+        <ThemedText style={[styles.toolArrow, { color: theme.primary }]}>↗</ThemedText>
       </Pressable>
     );
   }
+}
+
+function getToolCategory(title: string) {
+  if (title.includes('Department')) return 'ORGANIZATION SETUP';
+  if (title.includes('User')) return 'PEOPLE & ACCESS';
+  if (title.includes('Role')) return 'SECURITY';
+  if (title.includes('Create')) return 'GET STARTED';
+  return 'WORKSPACES';
 }
 
 const styles = StyleSheet.create({
@@ -275,13 +285,14 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 27, lineHeight: 32, fontWeight: '700' },
   statLabel: { fontSize: 12, fontWeight: '600' },
   toolsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 14 },
-  toolCard: { minHeight: 145, borderWidth: 1, borderRadius: 18, padding: 18, flexDirection: 'row', alignItems: 'flex-start', gap: 13 },
-  toolIcon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  toolIconText: { fontSize: 18, fontWeight: '700' },
-  toolCopy: { flex: 1, gap: 6 },
-  toolTitle: { fontSize: 16, fontWeight: '700' },
-  toolDescription: { fontSize: 12, lineHeight: 18 },
-  toolArrow: { fontSize: 18, fontWeight: '600' },
+  toolCard: { minHeight: 232, borderWidth: 1, borderRadius: 20, padding: 18, gap: 14, position: 'relative', shadowColor: '#172033', shadowOpacity: 0.045, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 2 },
+  toolIcon: { width: 48, height: 48, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  toolIconText: { fontSize: 20, fontWeight: '800' },
+  toolCopy: { flex: 1, gap: 5 },
+  toolCategory: { fontSize: 9, letterSpacing: 1, fontWeight: '800' },
+  toolTitle: { fontSize: 17, lineHeight: 23, fontWeight: '700' },
+  toolDescription: { fontSize: 12, lineHeight: 18, marginTop: 1 },
+  toolArrow: { fontSize: 18, fontWeight: '700', position: 'absolute', top: 28, right: 28 },
   errorCard: { padding: 16, borderRadius: 14, gap: 10 },
   footer: { textAlign: 'center', fontSize: 11, paddingTop: 2 },
   pressed: { opacity: 0.72 },

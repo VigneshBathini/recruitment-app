@@ -13,14 +13,13 @@ import { getApplicationCounts, getApplications, getApplicationReviewQueue } from
 import type { ApplicationCounts, ManagedApplication, ReviewQueueItem } from '@/services/application-management.service';
 
 const modules = [
-  { title: 'Requirements', key: 'requirement', permission: 'requirement.view', icon: 'R' },
-  { title: 'Jobs', key: 'job', permission: 'job.view', icon: 'J' },
-  { title: 'Candidates', key: 'candidate', permission: 'candidate.view', icon: 'C' },
-  { title: 'Applications', key: 'application', permission: 'application.view', icon: 'A' },
-  { title: 'Application review', key: 'application-review', permission: 'application.review', icon: 'D' },
-  { title: 'Interviews', key: 'interview', permission: 'interview.view', icon: 'I' },
-  { title: 'Offers', key: 'offer', permission: 'offer.view', icon: 'O' },
-  { title: 'Onboarding', key: 'onboarding', permission: 'onboarding.view', icon: 'N' },
+  { title: 'Requirements', key: 'requirement', permissions: ['requirement.view', 'requirement.manage', 'requirement.approve'], icon: 'R' },
+  { title: 'Jobs / Job Descriptions', key: 'job', permissions: ['job.view', 'job.manage', 'job.approve'], icon: 'J' },
+  { title: 'Applications', key: 'application', permissions: ['application.view'], icon: 'A' },
+  { title: 'Application review', key: 'application-review', permissions: ['application.review'], icon: 'D' },
+  { title: 'Interviews', key: 'interview', permissions: ['interview.view'], icon: 'I' },
+  { title: 'Offers', key: 'offer', permissions: ['offer.view'], icon: 'O' },
+  { title: 'Onboarding', key: 'onboarding', permissions: ['onboarding.view', 'onboarding.manage', 'onboarding.complete'], icon: 'N' },
 ];
 
 type RecruiterData = {
@@ -83,9 +82,21 @@ export function RoleDashboard({ role }: { role: 'Recruiter' | 'Hiring Manager' |
 
   useFocusEffect(useCallback(() => { void loadDashboard(); }, [loadDashboard]));
 
-  const permittedModules = modules.filter((item) => context?.permissions.some((permission) =>
-    permission === item.permission || permission === `${item.key}.manage` || permission === `${item.key}.approve` || (item.key === 'onboarding' && (permission === 'onboarding.document.review' || permission === 'onboarding.complete')),
-  ));
+  const permittedModules = modules.filter((item) =>
+    (item.key !== 'application-review' || role === 'Hiring Manager') &&
+    context?.permissions.some((permission) => item.permissions.includes(permission)),
+  );
+  const openModule = (key: (typeof modules)[number]['key']) => {
+    switch (key) {
+      case 'requirement': router.push('/requirements'); break;
+      case 'job': router.push('/job-descriptions' as never); break;
+      case 'application': router.push('/applications'); break;
+      case 'application-review': router.push('/application-review'); break;
+      case 'interview': router.push((role === 'Interviewer' ? '/interviewer-dashboard' : '/interviews') as never); break;
+      case 'offer': router.push('/offers' as never); break;
+      case 'onboarding': router.push('/onboarding'); break;
+    }
+  };
   const canListRequirements = context?.permissions.includes('requirement.view') || context?.permissions.includes('requirement.manage');
   const requirementMetrics = [
     { label: 'Approved requirements', value: canListRequirements ? String(requirements.filter((item) => item.status === 'APPROVED').length) : '—' },
@@ -168,7 +179,7 @@ export function RoleDashboard({ role }: { role: 'Recruiter' | 'Hiring Manager' |
           <View style={styles.section}>
             <View><ThemedText style={styles.sectionTitle}>Recruitment modules</ThemedText><ThemedText style={[styles.sectionCaption, { color: theme.textSecondary }]}>Available modules follow your organization role permissions.</ThemedText></View>
             {!loading && !error && permittedModules.length === 0 ? <ThemedText style={[styles.empty, { color: theme.textSecondary }]}>No recruitment modules are enabled for this role yet.</ThemedText> : null}
-            <View style={styles.grid}>{permittedModules.map((item) => <Pressable key={item.key} onPress={() => item.key === 'requirement' ? router.push('/requirements') : item.key === 'job' ? router.push('/job-descriptions' as never) : item.key === 'offer' ? router.push('/offers' as never) : item.key === 'application' ? router.push('/applications') : item.key === 'application-review' ? router.push('/application-review') : item.key === 'interview' ? router.push((role === 'Interviewer' ? '/interviewer-dashboard' : '/interviews') as never) : item.key === 'onboarding' ? router.push('/onboarding') : router.push({ pathname: '/module', params: { key: item.key, title: item.title } } as never)} style={({ pressed }) => [styles.module, { width: wide ? '48.5%' : '100%', backgroundColor: theme.backgroundElement, borderColor: theme.border }, pressed && styles.pressed]}>
+            <View style={styles.grid}>{permittedModules.map((item) => <Pressable key={item.key} onPress={() => openModule(item.key)} style={({ pressed }) => [styles.module, { width: wide ? '48.5%' : '100%', backgroundColor: theme.backgroundElement, borderColor: theme.border }, pressed && styles.pressed]}>
               <View style={[styles.icon, { backgroundColor: theme.primaryMuted }]}><ThemedText style={[styles.iconText, { color: theme.primary }]}>{item.icon}</ThemedText></View>
               <View style={styles.moduleCopy}><ThemedText style={styles.moduleTitle}>{item.title}</ThemedText><ThemedText style={[styles.moduleDescription, { color: theme.textSecondary }]}>{item.key === 'requirement' ? 'Review and manage hiring needs' : `Open ${item.title.toLowerCase()} workspace`}</ThemedText></View><ThemedText style={{ color: theme.textSecondary }}>↗</ThemedText>
             </Pressable>)}</View>

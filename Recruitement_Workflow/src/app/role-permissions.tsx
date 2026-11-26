@@ -181,12 +181,16 @@ export default function RolePermissionsScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <ThemedText style={styles.heading}>Role & Permissions</ThemedText>
-        <ThemedText
-          style={[styles.subtitle, { color: theme.textSecondary }]}
-        >
-          Choose a role and control which actions it can perform.
-        </ThemedText>
+        <ThemedView style={[styles.hero, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+          <View style={[styles.heroIcon, { backgroundColor: theme.primaryMuted }]}>
+            <ThemedText style={[styles.heroIconText, { color: theme.primary }]}>R</ThemedText>
+          </View>
+          <View style={styles.heroCopy}>
+            <ThemedText style={[styles.heroEyebrow, { color: theme.primary }]}>ACCESS CONTROL</ThemedText>
+            <ThemedText style={styles.heading}>Role & Permissions</ThemedText>
+            <ThemedText style={[styles.subtitle, { color: theme.textSecondary }]}>Choose a role and control which actions it can perform.</ThemedText>
+          </View>
+        </ThemedView>
 
         {loadError ? (
           <View style={styles.errorContainer}>
@@ -201,20 +205,43 @@ export default function RolePermissionsScreen() {
         ) : (
           <>
             {isPlatformAdmin && (
-              <>
-                <ThemedText style={styles.sectionTitle}>Select Organization</ThemedText>
-                <Pressable onPress={() => setShowOrganizations((value) => !value)} style={[styles.roleCard, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
-                  <ThemedText>{organizations.find((item) => item.id === organizationId)?.name ?? "Choose an organization"}</ThemedText>
+              <ThemedView style={[styles.organizationPanel, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+                <View style={styles.organizationHeading}>
+                  <View style={[styles.stepMark, { backgroundColor: theme.primaryMuted }]}><ThemedText style={[styles.stepMarkText, { color: theme.primary }]}>01</ThemedText></View>
+                  <View style={styles.organizationCopy}>
+                    <ThemedText style={styles.sectionTitle}>Select Organization</ThemedText>
+                    <ThemedText style={[styles.description, { color: theme.textSecondary }]}>Choose an organization</ThemedText>
+                  </View>
+                </View>
+                <Pressable accessibilityRole="button" accessibilityState={{ expanded: showOrganizations }} onPress={() => setShowOrganizations((value) => !value)} style={[styles.organizationSelector, { borderColor: showOrganizations ? theme.primary : theme.border, backgroundColor: theme.background }]}>
+                  <View style={[styles.organizationMark, { backgroundColor: theme.primaryMuted }]}><ThemedText style={[styles.organizationMarkText, { color: theme.primary }]}>O</ThemedText></View>
+                  <ThemedText style={styles.organizationSelected} numberOfLines={1}>{organizations.find((item) => item.id === organizationId)?.name ?? "Choose an organization"}</ThemedText>
+                  <ThemedText style={[styles.organizationChevron, { color: theme.primary }]}>{showOrganizations ? '-' : '+'}</ThemedText>
                 </Pressable>
-                {showOrganizations && organizations.map((organization) => (
-                  <Pressable key={organization.id} onPress={() => { setShowOrganizations(false); setOrganizationId(organization.id); }} style={[styles.roleCard, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
-                    <ThemedText>{organization.name}</ThemedText>
-                  </Pressable>
-                ))}
-              </>
+                {showOrganizations && <View style={[styles.organizationOptions, { borderColor: theme.border }]}>{organizations.map((organization) => {
+                  const selected = organization.id === organizationId;
+                  return <Pressable key={organization.id} accessibilityRole="button" accessibilityState={{ selected }} onPress={() => { setShowOrganizations(false); setOrganizationId(organization.id); }} style={[styles.organizationOption, { backgroundColor: selected ? theme.primaryMuted : theme.backgroundElement }]}>
+                    <ThemedText style={{ color: selected ? theme.primary : theme.text }}>{organization.name}</ThemedText>
+                    {selected && <ThemedText style={[styles.selectedLabel, { color: theme.primary }]}>Selected</ThemedText>}
+                  </Pressable>;
+                })}</View>}
+              </ThemedView>
             )}
-            <ThemedText style={styles.sectionTitle}>Select Role</ThemedText>
+            <View style={styles.sectionHeading}>
+              <View style={[styles.stepMark, { backgroundColor: theme.primaryMuted }]}><ThemedText style={[styles.stepMarkText, { color: theme.primary }]}>{isPlatformAdmin ? '02' : '01'}</ThemedText></View>
+              <View style={styles.organizationCopy}>
+                <ThemedText style={styles.sectionTitle}>Select Role</ThemedText>
+                <ThemedText style={[styles.description, { color: theme.textSecondary }]}>Choose a role to review its permissions</ThemedText>
+              </View>
+            </View>
 
+            {roles.length === 0 && (
+              <View style={[styles.emptyState, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+                <View style={[styles.emptyIcon, { backgroundColor: theme.primaryMuted }]}><ThemedText style={[styles.emptyIconText, { color: theme.primary }]}>P</ThemedText></View>
+                <ThemedText style={styles.emptyTitle}>{isPlatformAdmin && organizationId === null ? 'Choose an organization' : 'No roles are configured.'}</ThemedText>
+                <ThemedText style={[styles.emptyDescription, { color: theme.textSecondary }]}>{isPlatformAdmin && organizationId === null ? 'Select an organization above to view its roles.' : 'Roles for this organization will appear here when configured.'}</ThemedText>
+              </View>
+            )}
             <View style={styles.roleList}>
               {roles.map((role) => {
                 const isSelected = role.id === selectedRoleId;
@@ -233,14 +260,14 @@ export default function RolePermissionsScreen() {
                         backgroundColor: isSelected
                           ? theme.primaryMuted
                           : theme.backgroundElement,
-                        width: isWide ? '47%' : '100%',
+                        width: isWide ? '48.5%' : '100%',
                       },
                     ]}
                   >
-                    <ThemedText style={styles.roleName}>
-                      {isSelected ? "● " : "○ "}
-                      {role.name}
-                    </ThemedText>
+                    <View style={styles.roleCardHeader}>
+                      <ThemedText style={styles.roleName}>{role.name}</ThemedText>
+                      {isSelected && <ThemedText style={[styles.selectedLabel, { color: theme.primary }]}>SELECTED</ThemedText>}
+                    </View>
                     {!!role.description && (
                       <ThemedText
                         style={[
@@ -257,18 +284,23 @@ export default function RolePermissionsScreen() {
             </View>
 
             <View style={styles.permissionHeader}>
-              <ThemedText style={styles.sectionTitle}>
-                Permissions
-              </ThemedText>
-              <ThemedText style={{ color: theme.textSecondary }}>
-                {selectedPermissionIds.length} selected
-              </ThemedText>
+              <View style={styles.permissionTitleBlock}>
+                <ThemedText style={styles.sectionTitle}>Permissions</ThemedText>
+                <ThemedText style={[styles.description, { color: theme.textSecondary }]}>Actions available to the selected role</ThemedText>
+              </View>
+              <View style={[styles.countPill, { backgroundColor: theme.primaryMuted }]}>
+                <ThemedText style={[styles.countText, { color: theme.primary }]}>{selectedPermissionIds.length} selected</ThemedText>
+              </View>
             </View>
 
             {loading ? (
               <ActivityIndicator size="small" color={theme.primary} />
             ) : permissions.length === 0 ? (
-              <ThemedText>No permissions are configured.</ThemedText>
+              <View style={[styles.emptyState, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                <View style={[styles.emptyIcon, { backgroundColor: theme.primaryMuted }]}><ThemedText style={[styles.emptyIconText, { color: theme.primary }]}>P</ThemedText></View>
+                <ThemedText style={styles.emptyTitle}>{isPlatformAdmin && organizationId === null ? 'Choose an organization' : 'No permissions are configured.'}</ThemedText>
+                <ThemedText style={[styles.emptyDescription, { color: theme.textSecondary }]}>{isPlatformAdmin && organizationId === null ? 'Select an organization above to view its roles and permissions.' : 'Permissions for the selected role will appear here when configured.'}</ThemedText>
+              </View>
             ) : (
               permissions.map((permission) => {
                 const checked = selectedPermissionIds.includes(permission.id);
@@ -306,7 +338,7 @@ export default function RolePermissionsScreen() {
                         <ThemedText
                           style={[styles.checkmark, { color: theme.primaryText }]}
                         >
-                          ✓
+                          {String.fromCharCode(10003)}
                         </ThemedText>
                       )}
                     </View>
@@ -378,14 +410,60 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   heading: {
-    fontSize: 28,
-    fontWeight: "700",
+    fontSize: 26,
+    lineHeight: 32,
+    fontWeight: "800",
   },
   subtitle: {
     fontSize: 14,
     lineHeight: 21,
-    marginBottom: Spacing.two,
   },
+  hero: {
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: Spacing.four,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.three,
+  },
+  heroIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroIconText: { fontSize: 21, fontWeight: '800' },
+  heroCopy: { flex: 1, gap: Spacing.one },
+  heroEyebrow: { fontSize: 10, letterSpacing: 1.1, fontWeight: '800' },
+  organizationPanel: {
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: Spacing.three,
+    gap: Spacing.three,
+  },
+  organizationHeading: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  organizationCopy: { flex: 1, gap: 3 },
+  stepMark: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  stepMarkText: { fontSize: 11, fontWeight: '800' },
+  organizationSelector: { minHeight: 58, borderWidth: 1, borderRadius: 13, paddingHorizontal: Spacing.two, flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  organizationMark: { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  organizationMarkText: { fontSize: 16, fontWeight: '800' },
+  organizationSelected: { flex: 1, fontSize: 14, fontWeight: '700' },
+  organizationChevron: { fontSize: 21, fontWeight: '700', paddingHorizontal: 4 },
+  organizationOptions: { borderWidth: 1, borderRadius: 12, overflow: 'hidden' },
+  organizationOption: { minHeight: 46, paddingHorizontal: Spacing.three, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  sectionHeading: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  emptyState: { borderWidth: 1, borderRadius: 15, padding: Spacing.four, alignItems: 'center', gap: Spacing.two },
+  emptyIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.one },
+  emptyIconText: { fontSize: 20, fontWeight: '800' },
+  emptyTitle: { fontSize: 15, fontWeight: '700', textAlign: 'center' },
+  emptyDescription: { fontSize: 13, lineHeight: 19, textAlign: 'center', maxWidth: 420 },
+  permissionTitleBlock: { flex: 1, gap: 3 },
+  countPill: { borderRadius: 20, paddingHorizontal: 11, paddingVertical: 7 },
+  countText: { fontSize: 11, fontWeight: '800' },
+  selectedLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  roleCardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.two },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",
@@ -398,9 +476,10 @@ const styles = StyleSheet.create({
   },
   roleCard: {
     borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: 14,
     padding: Spacing.three,
-    gap: Spacing.one,
+    gap: Spacing.two,
+    minHeight: 76,
   },
   roleName: {
     fontSize: 15,

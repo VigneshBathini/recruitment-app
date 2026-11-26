@@ -55,11 +55,21 @@ const modules = [
   },
 ] as const;
 
+const recruitmentModules = [
+  { title: 'Requirements', description: 'Review and manage hiring needs.', category: 'HIRING NEEDS', icon: 'R', route: '/requirements', permissions: ['requirement.view', 'requirement.manage', 'requirement.approve'] },
+  { title: 'Jobs / Job Descriptions', description: 'Create, approve, and publish job descriptions.', category: 'JOB SETUP', icon: 'J', route: '/job-descriptions', permissions: ['job.view', 'job.manage', 'job.approve'] },
+  { title: 'Applications', description: 'Review applications and candidate progress.', category: 'CANDIDATE JOURNEY', icon: 'A', route: '/applications', permissions: ['application.view'] },
+  { title: 'Interviews', description: 'Coordinate interviews and feedback.', category: 'SELECTION', icon: 'I', route: '/interviews', permissions: ['interview.view'] },
+  { title: 'Offers', description: 'Review and manage candidate offers.', category: 'OFFER MANAGEMENT', icon: 'O', route: '/offers', permissions: ['offer.view'] },
+  { title: 'Onboarding', description: 'Track candidate onboarding tasks and documents.', category: 'ONBOARDING', icon: 'N', route: '/onboarding', permissions: ['onboarding.view', 'onboarding.manage', 'onboarding.complete'] },
+] as const;
+
 export default function HomeScreen() {
   const theme = useTheme();
   const { width } = useWindowDimensions();
   const [loggingOut, setLoggingOut] = useState(false);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const isWide = width >= 720;
@@ -70,6 +80,7 @@ export default function HomeScreen() {
     try {
       const organization = await getCurrentOrganizationUser();
       const organizationId = organization.id;
+      setPermissions(organization.permissions ?? []);
       const [users, departments, rolesResponse] = await Promise.all([
         getUsers(organizationId),
         getDepartments(organizationId),
@@ -313,6 +324,46 @@ export default function HomeScreen() {
               </Pressable>
             ))}
           </View>
+
+          <View style={styles.sectionHeading}>
+            <View style={styles.sectionCopy}>
+              <ThemedText style={styles.sectionTitle}>Recruitment</ThemedText>
+              <ThemedText style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>Open recruitment workspaces available to your role.</ThemedText>
+            </View>
+          </View>
+
+          {recruitmentModules.some((module) => module.permissions.some((permission) => permissions.includes(permission))) ? (
+            <View style={styles.moduleGrid}>
+              {recruitmentModules.filter((module) => module.permissions.some((permission) => permissions.includes(permission))).map((module, index) => (
+                <Pressable
+                  key={module.route}
+                  accessibilityRole="button"
+                  onPress={() => router.push(module.route as never)}
+                  style={({ pressed }) => [
+                    styles.moduleCard,
+                    {
+                      width: isWide ? '48.5%' : '100%',
+                      backgroundColor: theme.backgroundElement,
+                      borderColor: theme.backgroundSelected,
+                    },
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <View style={[styles.moduleIcon, { backgroundColor: theme.backgroundSelected }]}>
+                    <ThemedText style={[styles.moduleIconText, { color: theme.primary }]}>{module.icon}</ThemedText>
+                  </View>
+                  <View style={styles.moduleContent}>
+                    <ThemedText style={[styles.moduleCategory, { color: theme.primary }]}>{module.category}</ThemedText>
+                    <ThemedText style={styles.moduleTitle}>{module.title}</ThemedText>
+                    <ThemedText style={[styles.moduleDescription, { color: theme.textSecondary }]}>{module.description}</ThemedText>
+                  </View>
+                  <ThemedText style={[styles.moduleArrow, { color: theme.textSecondary }]}>â†—</ThemedText>
+                </Pressable>
+              ))}
+            </View>
+          ) : (
+            <ThemedText style={[styles.emptyState, { color: theme.textSecondary }]}>No recruitment modules are enabled for your role.</ThemedText>
+          )}
 
           <ThemedText style={[styles.footer, { color: theme.textSecondary }]}>
             Recruitment Workflow · People-first hiring starts here
