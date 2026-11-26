@@ -14,6 +14,8 @@ import {
 } from 'react-native';
 import { isAxiosError } from 'axios';
 import { router } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/hooks/use-theme';
 import { loginCandidate, registerCandidate, updateCandidatePhone } from '@/services/candidate-auth.service';
 import { saveCandidateToken } from '@/services/candidate-session.service';
@@ -32,6 +34,7 @@ const labels: Record<Field, string> = {
 
 export function CandidateAuthForm({ mode }: CandidateAuthFormProps) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const isRegister = mode === 'register';
   const [values, setValues] = useState<Record<Field, string>>({
@@ -39,6 +42,7 @@ export function CandidateAuthForm({ mode }: CandidateAuthFormProps) {
   });
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   function updateField(field: Field, value: string) {
     setValues((current) => ({ ...current, [field]: value }));
@@ -109,8 +113,8 @@ export function CandidateAuthForm({ mode }: CandidateAuthFormProps) {
     : ['organization_slug', 'email', 'password'];
 
   return (
-    <KeyboardAvoidingView style={[styles.screen, { backgroundColor: theme.background }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingHorizontal: width < 400 ? 16 : 24 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+    <KeyboardAvoidingView style={[styles.screen, { backgroundColor: theme.background }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={0}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingHorizontal: width < 400 ? 16 : 24 }, width < 700 && { ...styles.mobileContent, paddingTop: (Platform.OS === 'ios' ? insets.top : 0) + 24 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={[styles.card, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
           <View style={[styles.brandMark, { backgroundColor: theme.primary }]}><Text style={[styles.brandLetter, { color: theme.primaryText }]}>R</Text></View>
           <Text style={[styles.eyebrow, { color: theme.primary }]}>CANDIDATE PORTAL</Text>
@@ -129,16 +133,35 @@ export function CandidateAuthForm({ mode }: CandidateAuthFormProps) {
                   onChangeText={(value) => updateField(field, field === 'organization_slug' ? value.toLowerCase() : value)}
                   placeholder={field === 'organization_slug' ? 'e.g. acme-talent' : field === 'phone' ? '+1 555 0100' : labels[field]}
                   placeholderTextColor={theme.textSecondary}
-                  style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+                  style={[styles.input, field === 'password' && styles.passwordInput, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
                   autoCapitalize="none"
                   autoCorrect={false}
                   editable={!loading}
                   keyboardType={field === 'email' ? 'email-address' : field === 'phone' ? 'phone-pad' : 'default'}
-                  secureTextEntry={field === 'password'}
+                  secureTextEntry={field === 'password' && !showPassword}
                   textContentType={field === 'password' ? (isRegister ? 'newPassword' : 'password') : field === 'email' ? 'emailAddress' : 'none'}
                   returnKeyType={field === 'password' ? 'go' : 'next'}
                   onSubmitEditing={field === 'password' ? () => void submit() : undefined}
                 />
+                {field === 'password' ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                    accessibilityState={{ checked: showPassword }}
+                    disabled={loading}
+                    onPress={() => setShowPassword((visible) => !visible)}
+                    style={styles.passwordToggle}
+                  >
+                    <SymbolView
+                      name={showPassword
+                        ? { ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' }
+                        : { ios: 'eye', android: 'visibility', web: 'visibility' }}
+                      size={20}
+                      weight="medium"
+                      tintColor={theme.primary}
+                    />
+                  </Pressable>
+                ) : null}
               </View>
             ))}
           </View>
@@ -164,6 +187,7 @@ export function CandidateAuthForm({ mode }: CandidateAuthFormProps) {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 24 },
+  mobileContent: { justifyContent: 'flex-start', paddingTop: 24, paddingBottom: 32 },
   card: { width: '100%', maxWidth: 480, padding: 26, borderWidth: 1, borderRadius: 22, gap: 13 },
   brandMark: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   brandLetter: { fontSize: 22, fontWeight: '800' },
@@ -171,9 +195,11 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: '800' },
   subtitle: { fontSize: 14, lineHeight: 21, marginBottom: 6 },
   form: { gap: 14 },
-  field: { gap: 7 },
+  field: { gap: 7, position: 'relative' },
   label: { fontSize: 13, fontWeight: '600' },
   input: { minHeight: 48, borderWidth: 1, borderRadius: 11, paddingHorizontal: 13, fontSize: 15 },
+  passwordInput: { paddingRight: 64 },
+  passwordToggle: { position: 'absolute', right: 12, bottom: 14, minWidth: 42, alignItems: 'center' },
   error: { color: '#B42318', fontSize: 13, lineHeight: 19 },
   button: { minHeight: 50, alignItems: 'center', justifyContent: 'center', borderRadius: 12, marginTop: 5 },
   buttonPressed: { opacity: 0.72 },

@@ -15,6 +15,8 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { isAxiosError } from 'axios';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SymbolView } from 'expo-symbols';
 
 import { useTheme } from '@/hooks/use-theme';
 import { getLandingRoute, loginUser } from '@/services/auth.service';
@@ -22,9 +24,11 @@ import { saveToken, saveAccountType, saveOrganizationContext } from '@/services/
 
 export default function LoginScreen() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const [organizationSlug, setOrganizationSlug] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { width } = useWindowDimensions();
 
@@ -94,11 +98,13 @@ router.replace(getLandingRoute(result.user.role_name, result.user.account_type) 
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={0}
     >
       <ScrollView
         contentContainerStyle={[
           styles.content,
           { paddingHorizontal: width < 400 ? 16 : 24 },
+          width < 700 && { ...styles.mobileContent, paddingTop: Math.max(insets.top, 24) + 24 },
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -148,6 +154,7 @@ router.replace(getLandingRoute(result.user.role_name, result.user.account_type) 
                 accessibilityLabel="Organization slug"
                 style={[
                   styles.input,
+                  styles.passwordInput,
                   {
                     backgroundColor: colors.input,
                     borderColor: colors.border,
@@ -209,12 +216,29 @@ router.replace(getLandingRoute(result.user.role_name, result.user.account_type) 
                 onChangeText={setPassword}
                 placeholder="Enter your password"
                 placeholderTextColor={colors.secondaryText}
-                secureTextEntry
+                secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 editable={!loading}
                 returnKeyType="go"
                 onSubmitEditing={() => void handleLogin()}
               />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                accessibilityState={{ checked: showPassword }}
+                disabled={loading}
+                onPress={() => setShowPassword((visible) => !visible)}
+                style={styles.passwordToggle}
+              >
+                <SymbolView
+                  name={showPassword
+                    ? { ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' }
+                    : { ios: 'eye', android: 'visibility', web: 'visibility' }}
+                  size={20}
+                  weight="medium"
+                  tintColor={colors.primary}
+                />
+              </Pressable>
             </View>
 
             <TouchableOpacity
@@ -260,6 +284,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
+  },
+  mobileContent: {
+    justifyContent: 'flex-start',
+    paddingTop: 24,
+    paddingBottom: 32,
   },
   card: {
     width: '100%',
@@ -336,6 +365,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 12,
     fontSize: 14,
+  },
+  passwordInput: {
+    paddingRight: 64,
+  },
+  passwordToggle: {
+    position: 'absolute',
+    right: 12,
+    bottom: 14,
+    minWidth: 42,
+    alignItems: 'center',
   },
   button: {
     minHeight: 52,
